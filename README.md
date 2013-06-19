@@ -22,5 +22,6 @@ Add this to your .emacs
 	(add-to-list 'process-environment "HABIT_API_KEY=putkeyhere")
 
 Add these hooks if you want it to trigger after a state change, otherwise just add keybindings for them instead.
+
 	(add-hook 'org-after-todo-state-change-hook 'habitrpg-add)
 	(add-hook 'org-after-todo-state-change-hook 'habitrpg-done 'append)
