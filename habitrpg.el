@@ -74,6 +74,7 @@ With point on an `org-mode' headline, use the shell command
   (if (string= (nth 2 (org-heading-components)) "DONE")
       (progn
 	(setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
-	(shell-command (concat "habit perform_task " id " up &")))))
+	(unless (string= id "")
+	  (shell-command (concat "habit perform_task " id " up &"))))))
 
 ;;; habitrpg.el ends here
