@@ -44,10 +44,16 @@
 With point on an `org-mode' headline, use the shell command
    `habit` to add to habitrpg if TASK isn't already there."
   (setq task (nth 4 (org-heading-components)))
+  (setq habitp (member "hrpghabit" (org-get-tags-at)))
+  (setq dailyp (member "hrpgdaily" (org-get-tags-at)))
+  (cond
+   (habitp (setq type "habit"))
+   (dailyp (setq type "daily"))
+   (t (setq type "todo")))
   (setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
   (unless (string=(nth 2 (org-heading-components)) "DONE")
     (if (> 1 (string-to-number (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit task " id " | wc -l &")))))
-	(shell-command (concat "habit create_task todo \"" task "\" &")))))
+	(shell-command (concat "habit create_task " type " \"" task "\" &")))))
 
 (defun habitrpg-done ()
   "Update TASK on habitrpg."
