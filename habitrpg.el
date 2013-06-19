@@ -50,10 +50,22 @@ With point on an `org-mode' headline, use the shell command
    (habitp (setq type "habit"))
    (dailyp (setq type "daily"))
    (t (setq type "todo")))
-  (setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
-  (unless (string=(nth 2 (org-heading-components)) "DONE")
-    (if (> 1 (string-to-number (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit task " id " | wc -l &")))))
-	(shell-command (concat "habit create_task " type " \"" task "\" &")))))
+  (save-excursion
+    (let* ((beg 
+	    (progn
+	      (org-back-to-heading)
+	      (point)))
+           (end
+	    (progn
+	      (org-end-of-subtree)
+	      (point)))
+	   (text 
+	    (progn
+	      (buffer-substring beg end))))
+    (setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
+    (unless (string=(nth 2 (org-heading-components)) "DONE")
+      (if (> 1 (string-to-number (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit task " id " | wc -l &")))))
+	  (shell-command (concat "habit create_task " type " \"" task "\" False 0 \"" text "\" &")))))))
 
 (defun habitrpg-done ()
   "Update TASK on habitrpg."
