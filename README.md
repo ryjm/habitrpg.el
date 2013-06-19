@@ -7,6 +7,8 @@ Quick hack to integrate org-mode and habitrpg. Very much a work in progress. It'
 
 Only adds the headlines right now, no body text.
 
+Tag your habits and dailys with `hrpghabit` and `hrpgdaily` to get them to go to the right place
+
 Installation
 ------------
 
