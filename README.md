@@ -10,7 +10,7 @@ Only adds the headlines right now, no body text.
 Installation
 ------------
 
-Install pyhabit using pip
+Install pyhabit (https://github.com/xeross/pyhabit) using pip
 
     pip install git+git://github.com/xeross/pyhabit
     pip install git+git://github.com/xeross/pyhabit-cli
