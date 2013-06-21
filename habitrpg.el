@@ -39,8 +39,9 @@
 
 (provide 'habitrpg)
 
-(defconst hrpg-repeat-interval 10)
+(defconst hrpg-repeat-interval 120)
 (defvar hrpg-timer)  
+(defvar hrpg-id "")  
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline, use the shell command
