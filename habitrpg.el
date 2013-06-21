@@ -42,8 +42,11 @@
 (require 'cl)
 
 (defconst hrpg-repeat-interval 120)
+
 (defvar hrpg-timer)  
-(defvar hrpg-id "")  
+(defvar hrpg-id "")
+(defvar hrpg-status "")
+(defvar hrpg-status-to-file nil)
 (defvar hrpg-tags-list nil)
 
 (defun habitrpg-add ()
@@ -95,7 +98,11 @@ With point on an `org-mode' headline, use the shell command
   "Upvote a task. Add task if it doesn't exist."
   (if (string= hrpg-id "")
       (habitrpg-create type task text)
-    (shell-command-to-string (concat "habit perform_task " hrpg-id " up &"))))
+    (setq hrpg-status (shell-command-to-string (concat "habit perform_task " hrpg-id " up &"))))
+  (if hrpg-status-to-file
+      (with-temp-file "~/tmp/hrpg-status"
+	(insert hrpg-status))))
+
 
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
