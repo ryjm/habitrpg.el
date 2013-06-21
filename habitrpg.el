@@ -97,7 +97,9 @@ With point on an `org-mode' headline, use the shell command
 (defun habitrpg-upvote (hrpg-id &optional task type text)
   "Upvote a task. Add task if it doesn't exist."
   (if (string= hrpg-id "")
-      (habitrpg-create type task text)
+      (progn
+	(habitrpg-create type task text)
+	(habitrpg-get-id))
     (setq hrpg-status (shell-command-to-string (concat "habit perform_task " hrpg-id " up &"))))
   (if hrpg-status-to-file
       (with-temp-file "~/tmp/hrpg-status"
