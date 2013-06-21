@@ -68,32 +68,37 @@ With point on an `org-mode' headline, use the shell command
 	   (text 
 	    (progn
 	      (buffer-substring beg end))))
-    (setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
+    (habitrpg-get-id)
     (unless (string=(nth 2 (org-heading-components)) "DONE")
-      (if (> 1 (string-to-number (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit task " id " | wc -l &")))))
-	  (shell-command (concat "habit create_task " type " \"" task "\" False 0 \"" text "\" &")))))))
+      (if (> 1 (string-to-number (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit task " hrpg-id " | wc -l &")))))
+	  (habitrpg-create type task text))))))
+
+(defun habitrpg-create (type task text)
+  (shell-command (concat "habit create_task " type " \"" task "\" False 0 \"" text "\" &")))
 
 (defun habitrpg-done ()
   "Update TASK on habitrpg."
   (setq task (nth 4 (org-heading-components)))
   (if (string= (nth 2 (org-heading-components)) "DONE")
-      (progn
-	(setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
-	(unless (string= id "")
-	  (shell-command (concat "habit perform_task " id " up &"))))))
+      (progn 
+	(habitrpg-get-id)
+	(habitrpg-upvote hrpg-id))))
 
-(defun habitrpg-upvote (id)
-  (unless (string= id "")
-    (shell-command (concat "habit perform_task " id " up &"))))
+(defun habitrpg-get-id ()
+  (setq hrpg-id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &")))))
+
+(defun habitrpg-upvote (hrpg-id)
+  (unless (string= hrpg-id "")
+    (shell-command (concat "habit perform_task " hrpg-id " up &"))))
 
 (defun habitrpg-clock-in ()
   "Upvote a clocking task.
 Continuously upvote clocking tasks with the `clock` tag. Use on habits only"
-  (if (and (member "clock" (org-get-tags-at)) (member "hrpg-habit" (org-get-tags-at)))
+  (if (and (member "clock" (org-get-tags-at)) (member "hrpghabit" (org-get-tags-at)))
       (progn
 	(setq task (nth 4 (org-heading-components)))
-	(setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
-	(setq hrpg-timer (run-at-time nil hrpg-repeat-interval 'habitrpg-upvote id)))))
+	(setq hrpg-id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
+	(setq hrpg-timer (run-at-time nil hrpg-repeat-interval 'habitrpg-upvote hrpg-id)))))
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
