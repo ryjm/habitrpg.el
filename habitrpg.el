@@ -39,6 +39,8 @@
 
 (provide 'habitrpg)
 
+(defconst hrpg-repeat-interval 10)
+(defvar hrpg-timer)  
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline, use the shell command
@@ -79,4 +81,22 @@ With point on an `org-mode' headline, use the shell command
 	(unless (string= id "")
 	  (shell-command (concat "habit perform_task " id " up &"))))))
 
+(defun habitrpg-upvote (id)
+  (unless (string= id "")
+    (shell-command (concat "habit perform_task " id " up &"))))
+
+(defun habitrpg-clock-in ()
+  "Upvote a clocking task.
+Continuously upvote clocking tasks with the `clock` tag. Use on habits only"
+  (if (and (member "clock" (org-get-tags-at)) (member "hrpg-habit" (org-get-tags-at)))
+      (progn
+	(setq task (nth 4 (org-heading-components)))
+	(setq id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
+	(setq hrpg-timer (run-at-time nil hrpg-repeat-interval 'habitrpg-upvote id)))))
+
+(defun habitrpg-clock-out ()
+  "Stop upvoting."
+  (if (member "clock" (org-get-tags-at))
+      (cancel-timer hrpg-timer)))
+	  
 ;;; habitrpg.el ends here
