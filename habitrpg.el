@@ -39,9 +39,13 @@
 
 (provide 'habitrpg)
 
+(require 'cl)
+
 (defconst hrpg-repeat-interval 120)
 (defvar hrpg-timer)  
 (defvar hrpg-id "")  
+(defvar hrpg-tags-list nil)
+
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline, use the shell command
@@ -87,22 +91,24 @@ With point on an `org-mode' headline, use the shell command
 (defun habitrpg-get-id ()
   (setq hrpg-id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &")))))
 
-(defun habitrpg-upvote (hrpg-id)
-  (unless (string= hrpg-id "")
+(defun habitrpg-upvote (hrpg-id &optional task type text)
+  "Upvote a task. Add task if it doesn't exist."
+  (if (string= hrpg-id "")
+      (habitrpg-create type task text)
     (shell-command (concat "habit perform_task " hrpg-id " up &"))))
 
 (defun habitrpg-clock-in ()
-  "Upvote a clocking task.
-Continuously upvote clocking tasks with the `clock` tag. Use on habits only"
-  (if (and (member "clock" (org-get-tags-at)) (member "hrpghabit" (org-get-tags-at)))
+  "Upvote a clocking task based on tags.
+Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
+  (setq task (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal)))
+  (if task
       (progn
-	(setq task (nth 4 (org-heading-components)))
-	(setq hrpg-id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
-	(setq hrpg-timer (run-at-time nil hrpg-repeat-interval 'habitrpg-upvote hrpg-id)))))
+	(habitrpg-get-id)
+	(setq hrpg-timer (run-at-time nil hrpg-repeat-interval 'habitrpg-upvote hrpg-id task "habit" "")))))
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
-  (if (member "clock" (org-get-tags-at))
+  (if (member task (org-get-tags-at))
       (cancel-timer hrpg-timer)))
 	  
 ;;; habitrpg.el ends here
