@@ -33,4 +33,4 @@ If you want to use the clocking feature:
 	(add-hook 'org-clock-in-hook 'habitrpg-clock-in)
 	(add-hook 'org-clock-out-hook 'habitrpg-clock-out)
 
-and set the variable `hrpg-tags-list` to the habits you want to associate with the clocked task.
+and set the variable `hrpg-tags-list` to the habits you want to associate with the clocked task. Then your habit will get upvoted every two minutes.
