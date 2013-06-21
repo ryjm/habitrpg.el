@@ -78,7 +78,7 @@ With point on an `org-mode' headline, use the shell command
 	  (habitrpg-create type task text))))))
 
 (defun habitrpg-create (type task text)
-  (shell-command (concat "habit create_task " type " \"" task "\" False 0 \"" text "\" &")))
+  (shell-command-to-string (concat "habit create_task " type " \"" task "\" False 0 \"" text "\" &")))
 
 (defun habitrpg-done ()
   "Update TASK on habitrpg."
@@ -95,7 +95,7 @@ With point on an `org-mode' headline, use the shell command
   "Upvote a task. Add task if it doesn't exist."
   (if (string= hrpg-id "")
       (habitrpg-create type task text)
-    (shell-command (concat "habit perform_task " hrpg-id " up &"))))
+    (shell-command-to-string (concat "habit perform_task " hrpg-id " up &"))))
 
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
