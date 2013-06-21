@@ -46,9 +46,11 @@ With point on an `org-mode' headline, use the shell command
   (setq task (nth 4 (org-heading-components)))
   (setq habitp (member "hrpghabit" (org-get-tags-at)))
   (setq dailyp (member "hrpgdaily" (org-get-tags-at)))
+  (setq rewardp (member "hrpgreward" (org-get-tags-at)))
   (cond
    (habitp (setq type "habit"))
    (dailyp (setq type "daily"))
+   (rewardp (setq type "reward"))
    (t (setq type "todo")))
   (save-excursion
     (let* ((beg 

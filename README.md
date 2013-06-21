@@ -5,7 +5,7 @@ habitrpg.el
 
 Quick hack to integrate org-mode and habitrpg. Very much a work in progress. It's a bit slow and triggers after a TODO state change in org-mode (so you need to have an intermediary stage between TODO and DONE, like NEXT, or just give habitrpg-add a keybinding).
 
-Tag your habits and dailys with `hrpghabit` and `hrpgdaily` to get them to go to the right place.
+Tag your habits and dailys with `hrpghabit`, `hrpgdaily`, and `hrpgreward` to get them in the right category.
 
 Installation
 ------------
