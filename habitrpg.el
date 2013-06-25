@@ -117,7 +117,6 @@ Continuously upvote habits associated with the currently clocking task, based on
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
-  (if (member task hrpg-tags-list)
-      (cancel-timer hrpg-timer)))
+  (cancel-function-timers 'habitrpg-upvote))
 	  
 ;;; habitrpg.el ends here
