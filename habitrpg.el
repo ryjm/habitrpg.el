@@ -171,7 +171,7 @@ This is calculated from `habitrpg-highlight-indentation'.")
     (define-key map (kbd "TAB") 'habitrpg-toggle-section)
     (define-key map (kbd "<backtab>") 'habitrpg-expand-collapse-section)
     (define-key map (kbd "RET") 'habitrpg-visit-item)
-    (define-key map (kbd "C-c C-c") 'habitrpg-upvote-at-point)
+    (define-key map "\C-c\C-c" 'habitrpg-upvote-at-point)
     (define-key map (kbd "C-c C-k") 'habitrpg-downvote-at-point)
     (define-key map (kbd "g") 'habitrpg-refresh)
     (define-key map (kbd "G") 'habitrpg-refresh-all)
@@ -1159,23 +1159,29 @@ With point on an `org-mode' headline, use the shell command
 	(insert hrpg-status))))
 
 (defun habitrpg-get-id-at-point ()
-  (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
+  (interactive)
+  (let ((point-task (buffer-substring (line-beginning-position) (line-end-position))))
+    (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" point-task "\" | sed -e 'q' | cut -d\"'\" -f4 &")))))
 
 (defun habitrpg-upvote-at-point ()
   "Upvote a task. Add task if it doesn't exist."
+  (interactive)
   (let ((id (habitrpg-get-id-at-point)))
     (setq hrpg-status (shell-command-to-string (concat "habit perform_task " id " up &")))
     (if hrpg-status-to-file
 	(with-temp-file "~/tmp/hrpg-status"
-	  (insert hrpg-status)))))
+	  (insert hrpg-status))))
+  (habitrpg-refresh-status))
 
 (defun habitrpg-downvote-at-point ()
   "Upvote a task. Add task if it doesn't exist."
+  (interactive)
   (let ((id (habitrpg-get-id-at-point)))
     (setq hrpg-status (shell-command-to-string (concat "habit perform_task " id " down &")))
     (if hrpg-status-to-file
 	(with-temp-file "~/tmp/hrpg-status"
-	  (insert hrpg-status)))))
+	  (insert hrpg-status))))
+  (habitrpg-refresh-status))
 
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
