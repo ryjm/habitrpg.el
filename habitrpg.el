@@ -163,6 +163,16 @@ This is calculated from `habitrpg-highlight-indentation'.")
 (defvar habitrpg-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
+    (define-key map (kbd "n") 'habitrpg-goto-next-section)
+    (define-key map (kbd "p") 'habitrpg-goto-previous-section)
+    (define-key map (kbd "^") 'habitrpg-goto-parent-section)
+    (define-key map (kbd "M-n") 'habitrpg-goto-next-sibling-section)
+    (define-key map (kbd "M-p") 'habitrpg-goto-previous-sibling-section)
+    (define-key map (kbd "TAB") 'habitrpg-toggle-section)
+    (define-key map (kbd "<backtab>") 'habitrpg-expand-collapse-section)
+    (define-key map (kbd "RET") 'habitrpg-visit-item)
+    (define-key map (kbd "C-c C-c") 'habitrpg-upvote-at-point)
+    (define-key map (kbd "C-c C-k") 'habitrpg-downvote-at-point)
     (define-key map (kbd "g") 'habitrpg-refresh)
     (define-key map (kbd "G") 'habitrpg-refresh-all)
     map))
@@ -200,7 +210,10 @@ The function is given one argument, the status buffer."
   (habitrpg-create-buffer-sections
     (habitrpg-with-section 'status nil
 			  (habitrpg-insert-stats)
-			  (habitrpg-insert-tasks))))
+			  (habitrpg-insert-tasks)
+			  (habitrpg-insert-habits)
+			  (habitrpg-insert-dailies)
+			  (habitrpg-insert-rewards))))
    
 (defun habitrpg-mode ()
   "Review the status of your habitrpg characters.
@@ -517,6 +530,257 @@ in the corresponding directory."
   (or (get-text-property pos 'habitrpg-section)
       habitrpg-top-section))
 
+(defun habitrpg-goto-next-section ()
+  "Go to the next section."
+  (interactive)
+  (let ((next (habitrpg-find-section-after (point))))
+    (if next
+        (habitrpg-goto-section next)
+      (message "No next section"))))
+
+(defun habitrpg-goto-previous-section ()
+  "Go to the previous section."
+  (interactive)
+  (if (eq (point) 1)
+      (message "No previous section")
+    (habitrpg-goto-section (habitrpg-find-section-before (point)))))
+
+(defun habitrpg-goto-parent-section ()
+  "Go to the parent section."
+  (interactive)
+  (let ((parent (habitrpg-section-parent (habitrpg-current-section))))
+    (when parent
+      (goto-char (habitrpg-section-beginning parent)))))
+
+(defun habitrpg-goto-next-sibling-section ()
+  "Go to the next sibling section."
+  (interactive)
+  (let* ((initial (point))
+         (section (habitrpg-current-section))
+         (end (- (habitrpg-section-end section) 1))
+         (parent (habitrpg-section-parent section))
+         (siblings (and parent (habitrpg-section-children parent)))
+         (next-sibling (habitrpg-find-section-after* end siblings)))
+    (if next-sibling
+        (habitrpg-goto-section next-sibling)
+      (habitrpg-goto-next-section))))
+
+(defun habitrpg-goto-previous-sibling-section ()
+  "Go to the previous sibling section."
+  (interactive)
+  (let* ((section (habitrpg-current-section))
+         (beginning (habitrpg-section-beginning section))
+         (parent (habitrpg-section-parent section))
+         (siblings (and parent (habitrpg-section-children parent)))
+         (previous-sibling (habitrpg-find-section-before* beginning siblings)))
+    (if previous-sibling
+        (habitrpg-goto-section previous-sibling)
+      (habitrpg-goto-parent-section))))
+
+(defun habitrpg-goto-section (section)
+  (goto-char (habitrpg-section-beginning section))
+  (cond
+   (
+    (forward-line -1)
+    (habitrpg-goto-next-section))
+   ((and (eq (habitrpg-section-type section) 'commit)
+         (derived-mode-p 'habitrpg-log-mode))
+    )))
+
+(defun habitrpg-goto-section-at-path (path)
+  "Go to the section described by PATH."
+  (let ((sec (habitrpg-find-section path habitrpg-top-section)))
+    (if sec
+        (goto-char (habitrpg-section-beginning sec))
+      (message "No such section"))))
+
+(defun habitrpg-for-all-sections (func &optional top)
+  "Run FUNC on TOP and recursively on all its children.
+Default value for TOP is `habitrpg-top-section'"
+  (let ((section (or top habitrpg-top-section)))
+    (when section
+      (funcall func section)
+      (dolist (c (habitrpg-section-children section))
+        (habitrpg-for-all-sections func c)))))
+
+(defun habitrpg-section-any-hidden (section)
+  "Return true if SECTION or any of its children is hidden."
+  (or (habitrpg-section-hidden section)
+      (let ((kids (habitrpg-section-children section)))
+        (while (and kids (not (habitrpg-section-any-hidden (car kids))))
+          (setq kids (cdr kids)))
+        kids)))
+
+(defun habitrpg-section-collapse (section)
+  "Show SECTION and hide all its children."
+  (dolist (c (habitrpg-section-children section))
+    (setf (habitrpg-section-hidden c) t))
+  (habitrpg-section-set-hidden section nil))
+
+(defun habitrpg-section-expand (section)
+  "Show SECTION and all its children."
+  (dolist (c (habitrpg-section-children section))
+    (setf (habitrpg-section-hidden c) nil))
+  (habitrpg-section-set-hidden section nil))
+
+(defun habitrpg-section-expand-all-aux (section)
+  "Show recursively all SECTION's children."
+  (dolist (c (habitrpg-section-children section))
+    (setf (habitrpg-section-hidden c) nil)
+    (habitrpg-section-expand-all-aux c)))
+
+(defun habitrpg-section-expand-all (section)
+  "Show SECTION and all its children."
+  (habitrpg-section-expand-all-aux section)
+  (habitrpg-section-set-hidden section nil))
+
+(defun habitrpg-section-hideshow (flag-or-func)
+  "Show or hide current section depending on FLAG-OR-FUNC.
+
+If FLAG-OR-FUNC is a function, it will be ran on current section.
+IF FLAG-OR-FUNC is a boolean, the section will be hidden if it is
+true, shown otherwise."
+  (let ((section (habitrpg-current-section)))
+    (when (habitrpg-section-parent section)
+      (goto-char (habitrpg-section-beginning section))
+      (if (functionp flag-or-func)
+          (funcall flag-or-func section)
+        (habitrpg-section-set-hidden section flag-or-func)))))
+
+(defun habitrpg-show-section ()
+  "Show current section."
+  (interactive)
+  (habitrpg-section-hideshow nil))
+
+(defun habitrpg-hide-section ()
+  "Hide current section."
+  (interactive)
+  (habitrpg-section-hideshow t))
+
+(defun habitrpg-collapse-section ()
+  "Hide all subsection of current section."
+  (interactive)
+  (habitrpg-section-hideshow #'habitrpg-section-collapse))
+
+(defun habitrpg-expand-section ()
+  "Show all subsection of current section."
+  (interactive)
+  (habitrpg-section-hideshow #'habitrpg-section-expand))
+
+(defun habitrpg-toggle-file-section ()
+  "Like `habitrpg-toggle-section' but toggle at file granularity."
+  (interactive)
+  (when (eq 'hunk (car (habitrpg-section-context-type (habitrpg-current-section))))
+    (habitrpg-goto-parent-section))
+  (habitrpg-toggle-section))
+
+(defun habitrpg-toggle-section ()
+  "Toggle hidden status of current section."
+  (interactive)
+  (habitrpg-section-hideshow
+   (lambda (s)
+     (habitrpg-section-set-hidden s (not (habitrpg-section-hidden s))))))
+
+(defun habitrpg-expand-collapse-section ()
+  "Toggle hidden status of subsections of current section."
+  (interactive)
+  (habitrpg-section-hideshow
+   (lambda (s)
+     (cond ((habitrpg-section-any-hidden s)
+            (habitrpg-section-expand-all s))
+           (t
+            (habitrpg-section-collapse s))))))
+
+(defun habitrpg-cycle-section ()
+  "Cycle between expanded, hidden and collapsed state for current section.
+
+Hidden: only the first line of the section is shown
+Collapsed: only the first line of the subsection is shown
+Expanded: everything is shown."
+  (interactive)
+  (habitrpg-section-hideshow
+   (lambda (s)
+     (cond ((habitrpg-section-hidden s)
+            (habitrpg-section-collapse s))
+           ((with-no-warnings
+              (cl-notany #'habitrpg-section-hidden (habitrpg-section-children s)))
+            (habitrpg-section-set-hidden s t))
+           (t
+            (habitrpg-section-expand s))))))
+
+(defun habitrpg-section-lineage (section)
+  "Return list of parent, grand-parents... for SECTION."
+  (when section
+    (cons section (habitrpg-section-lineage (habitrpg-section-parent section)))))
+
+(defun habitrpg-section-show-level (section level threshold path)
+  (habitrpg-section-set-hidden section (>= level threshold))
+  (when (< level threshold)
+    (if path
+        (habitrpg-section-show-level (car path) (1+ level) threshold (cdr path))
+      (dolist (c (habitrpg-section-children section))
+        (habitrpg-section-show-level c (1+ level) threshold nil)))))
+
+(defun habitrpg-show-level (level all)
+  "Show section whose level is less than LEVEL, hide the others.
+If ALL is non nil, do this in all sections, otherwise do it only
+on ancestors and descendants of current section."
+  (habitrpg-with-refresh
+    (if all
+        (habitrpg-section-show-level habitrpg-top-section 0 level nil)
+      (let ((path (reverse (habitrpg-section-lineage (habitrpg-current-section)))))
+        (habitrpg-section-show-level (car path) 0 level (cdr path))))))
+
+(defun habitrpg-show-only-files ()
+  "Show section that are files, but not there subsection.
+
+Do this in on ancestors and descendants of current section."
+  (interactive)
+  (if (derived-mode-p 'habitrpg-status-mode)
+      (call-interactively 'habitrpg-show-level-2)
+    (call-interactively 'habitrpg-show-level-1)))
+
+(defun habitrpg-show-only-files-all ()
+  "Show section that are files, but not there subsection.
+Do this for all sections"
+  (interactive)
+  (if (derived-mode-p 'habitrpg-status-mode)
+      (call-interactively 'habitrpg-show-level-2-all)
+    (call-interactively 'habitrpg-show-level-1-all)))
+
+(defmacro habitrpg-define-level-shower-1 (level all)
+  "Define an interactive function to show function of level LEVEL.
+
+If ALL is non nil, this function will affect all section,
+otherwise it will affect only ancestors and descendants of
+current section."
+  (let ((fun (intern (format "habitrpg-show-level-%s%s"
+                             level (if all "-all" ""))))
+        (doc (format "Show sections on level %s." level)))
+    `(defun ,fun ()
+       ,doc
+       (interactive)
+       (habitrpg-show-level ,level ,all))))
+
+(defmacro habitrpg-define-level-shower (level)
+  "Define two interactive function to show function of level LEVEL.
+One for all, one for current lineage."
+  `(progn
+     (habitrpg-define-level-shower-1 ,level nil)
+     (habitrpg-define-level-shower-1 ,level t)))
+
+(defmacro habitrpg-define-section-jumper (sym title)
+  "Define an interactive function to go to section SYM.
+TITLE is the displayed title of the section."
+  (let ((fun (intern (format "habitrpg-jump-to-%s" sym)))
+        (doc (format "Jump to section `%s'." title)))
+    `(progn
+       (defun ,fun ()
+         ,doc
+         (interactive)
+         (habitrpg-goto-section-at-path '(,sym)))
+       (put ',fun 'definition-name ',sym))))
+
 (defmacro habitrpg-define-inserter (sym arglist &rest body)
   (declare (indent defun))
   (let ((fun (intern (format "habitrpg-insert-%s" sym)))
@@ -543,6 +807,21 @@ in the corresponding directory."
 			  (habitrpg-section 'tasks
 					    "Tasks:" 'habitrpg-wash-tasks
 					    "tasks")) 
+
+(habitrpg-define-inserter habits ()
+			  (habitrpg-section 'habits
+					    "Habits:" 'habitrpg-wash-habits
+					    "tasks")) 
+
+(habitrpg-define-inserter dailies ()
+			  (habitrpg-section 'dailies
+					    "Dailies:" 'habitrpg-wash-dailies
+					    "tasks")) 
+(habitrpg-define-inserter rewards ()
+			  (habitrpg-section 'rewards
+					    "Rewards:" 'habitrpg-wash-rewards
+					    "tasks")) 
+
 
 (defun habitrpg-wash-stat ()
   (let ((entry-regexp ".*u'\\(exp\\|gp\\|hp\\|lvl\\)': \\([0-9].*\\),"))
@@ -574,23 +853,112 @@ in the corresponding directory."
     (habitrpg-wash-sequence #'habitrpg-wash-stat)))
 
 (defun habitrpg-wash-task ()
-  (let ((entry-regexp ".*u'text': u'\\(.*\\)',"))
+  (let ((entry-regexp ".*u'text': u'\\(.*\\)',")
+	(type-regexp ".*u'type': u'\\(.*\\)',"))
     (if (looking-at entry-regexp)
 	(let ((task-name (match-string-no-properties 1)))
-	  (delete-region (match-beginning 0) (match-end 0))
-	  (goto-char (match-beginning 0))
-	  (fixup-whitespace)
-	  (goto-char (line-beginning-position))
-	(insert task-name)
-        (goto-char (line-beginning-position))
-        (habitrpg-with-section task-name 'tasks
-          (habitrpg-set-section-info task-name)
-          (forward-line)))
+	  (delete-region (line-beginning-position) (line-end-position))
+	  (delete-blank-lines)
+	  (search-forward-regexp type-regexp nil t)
+	  (let ((type (match-string-no-properties 1)))
+	    (if (string-equal type "todo")
+		(progn
+		  (delete-region (match-beginning 0) (match-end 0))
+		  (goto-char (match-beginning 0))
+		  (fixup-whitespace)
+		  (goto-char (line-beginning-position))
+		  (insert task-name)
+		  (goto-char (line-beginning-position))
+		  (habitrpg-with-section task-name 'tasks
+		    (habitrpg-set-section-info task-name)
+		    (forward-line))))))
       (kill-line))
     t))
+
 (defun habitrpg-wash-tasks ()
   (let ((habitrpg-old-top-section nil))
     (habitrpg-wash-sequence #'habitrpg-wash-task)))
+
+(defun habitrpg-wash-habit ()
+  (let ((entry-regexp ".*u'text': u'\\(.*\\)',")
+	(type-regexp ".*u'type': u'\\(.*\\)',"))
+    (if (looking-at entry-regexp)
+	(let ((habit-name (match-string-no-properties 1)))
+	  (delete-region (line-beginning-position) (line-end-position))
+	  (delete-blank-lines)
+	  (search-forward-regexp type-regexp nil t)
+	  (let ((type (match-string-no-properties 1)))
+	    (if (string-equal type "habit")
+		(progn
+		  (delete-region (match-beginning 0) (match-end 0))
+		  (goto-char (match-beginning 0))
+		  (fixup-whitespace)
+		  (goto-char (line-beginning-position))
+		  (insert habit-name)
+		  (goto-char (line-beginning-position))
+		  (habitrpg-with-section habit-name 'habits
+		    (habitrpg-set-section-info habit-name)
+		    (forward-line))))))
+      (kill-line))
+    t))
+		 
+(defun habitrpg-wash-habits ()
+  (let ((habitrpg-old-top-section nil))
+    (habitrpg-wash-sequence #'habitrpg-wash-habit)))
+
+(defun habitrpg-wash-daily ()
+  (let ((entry-regexp ".*u'text': u'\\(.*\\)',")
+	(type-regexp ".*u'type': u'\\(.*\\)',"))
+    (if (looking-at entry-regexp)
+	(let ((daily-name (match-string-no-properties 1)))
+	  (delete-region (line-beginning-position) (line-end-position))
+	  (delete-blank-lines)
+	  (search-forward-regexp type-regexp nil t)
+	  (let ((type (match-string-no-properties 1)))
+	    (if (string-equal type "daily")
+		(progn
+		  (delete-region (match-beginning 0) (match-end 0))
+		  (goto-char (match-beginning 0))
+		  (fixup-whitespace)
+		  (goto-char (line-beginning-position))
+		  (insert daily-name)
+		  (goto-char (line-beginning-position))
+		  (habitrpg-with-section daily-name 'dailies
+		    (habitrpg-set-section-info daily-name)
+		    (forward-line))))))
+      (kill-line))
+    t))
+		 
+(defun habitrpg-wash-dailies ()
+  (let ((habitrpg-old-top-section nil))
+    (habitrpg-wash-sequence #'habitrpg-wash-daily)))
+
+(defun habitrpg-wash-reward ()
+  (let ((entry-regexp ".*u'text': u'\\(.*\\)',")
+	(type-regexp ".*u'type': u'\\(.*\\)',"))
+    (if (looking-at entry-regexp)
+	(let ((reward-name (match-string-no-properties 1)))
+	  (delete-region (line-beginning-position) (line-end-position))
+	  (delete-blank-lines)
+	  (search-forward-regexp type-regexp nil t)
+	  (let ((type (match-string-no-properties 1)))
+	    (if (string-equal type "reward")
+		(progn
+		  (delete-region (match-beginning 0) (match-end 0))
+		  (goto-char (match-beginning 0))
+		  (fixup-whitespace)
+		  (goto-char (line-beginning-position))
+		  (insert reward-name)
+		  (goto-char (line-beginning-position))
+		  (habitrpg-with-section reward-name 'rewards
+		    (habitrpg-set-section-info reward-name)
+		    (forward-line))))))
+      (kill-line))
+    t))
+		 
+(defun habitrpg-wash-rewards ()
+  (let ((habitrpg-old-top-section nil))
+    (habitrpg-wash-sequence #'habitrpg-wash-reward)))
 
 
 (defun habitrpg-wash-sequence (func)
@@ -790,6 +1158,24 @@ With point on an `org-mode' headline, use the shell command
       (with-temp-file "~/tmp/hrpg-status"
 	(insert hrpg-status))))
 
+(defun habitrpg-get-id-at-point ()
+  (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &"))))
+
+(defun habitrpg-upvote-at-point ()
+  "Upvote a task. Add task if it doesn't exist."
+  (let ((id (habitrpg-get-id-at-point)))
+    (setq hrpg-status (shell-command-to-string (concat "habit perform_task " id " up &")))
+    (if hrpg-status-to-file
+	(with-temp-file "~/tmp/hrpg-status"
+	  (insert hrpg-status)))))
+
+(defun habitrpg-downvote-at-point ()
+  "Upvote a task. Add task if it doesn't exist."
+  (let ((id (habitrpg-get-id-at-point)))
+    (setq hrpg-status (shell-command-to-string (concat "habit perform_task " id " down &")))
+    (if hrpg-status-to-file
+	(with-temp-file "~/tmp/hrpg-status"
+	  (insert hrpg-status)))))
 
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
