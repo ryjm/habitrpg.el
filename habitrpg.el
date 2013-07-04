@@ -1148,7 +1148,7 @@ With point on an `org-mode' headline, use the shell command
     (let* ((beg 
 	    (progn
 	      (org-back-to-heading)
-	      (line-move 1)
+	      (forward-line 1)
 	      (point)))
            (end
 	    (progn
