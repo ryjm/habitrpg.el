@@ -34,7 +34,9 @@
 ;; (add-hook 'org-after-todo-state-change-hook 'habitrpg-add)
 ;; (add-hook 'org-after-todo-state-change-hook 'habitrpg-done 'append)
 
-
+;; Most of the code for the status buffer was taken from the Magit
+;;project (I really like the way they set up the sections, it's very
+;;modular so you can add different sections easily.
 ;;; Code:
 
 (provide 'habitrpg)
@@ -822,6 +824,11 @@ TITLE is the displayed title of the section."
 					    "Rewards:" 'habitrpg-wash-rewards
 					    "tasks")) 
 
+;; (habitrpg-define-inserter items ()
+;; 			  (habitrpg-section 'items
+;; 					    "Items:" 'habitrpg-wash-items
+;; 					    "user")) 
+
 
 (defun habitrpg-wash-stat ()
   (let ((entry-regexp ".*u'\\(exp\\|gp\\|hp\\|lvl\\)': \\([0-9].*\\),"))
@@ -959,6 +966,28 @@ TITLE is the displayed title of the section."
 (defun habitrpg-wash-rewards ()
   (let ((habitrpg-old-top-section nil))
     (habitrpg-wash-sequence #'habitrpg-wash-reward)))
+
+;; (defun habitrpg-wash-item ()
+;;   (let ((entry-regexp ".*u'items': ")) ;;u'\\(.*\\)',"))
+;;     (if (looking-at entry-regexp)
+;; 	(let ((item-name (match-string-no-properties 1)))
+;; 	  (delete-region (line-beginning-position) (line-end-position))
+;; 	  (delete-blank-lines)
+;; 	  (delete-region (match-beginning 0) (match-end 0))
+;; 	  (goto-char (match-beginning 0))
+;; 	  (fixup-whitespace)
+;; 	  (goto-char (line-beginning-position))
+;; 	  (insert item-name)
+;; 	  (goto-char (line-beginning-position))
+;; 	  (habitrpg-with-section item-name 'items
+;; 	    (habitrpg-set-section-info item-name)
+;; 	    (forward-line)))
+;;       (kill-line))
+;;     t))
+		 
+(defun habitrpg-wash-items ()
+  (let ((habitrpg-old-top-section nil))
+    (habitrpg-wash-sequence #'habitrpg-wash-item)))
 
 
 (defun habitrpg-wash-sequence (func)
