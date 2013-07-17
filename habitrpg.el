@@ -43,19 +43,17 @@
 (require 'request)
 (defcustom habitrpg-api-url "https://beta.habitrpg.com/api/v1"
   "API url"
-  )
+  :group 'habitrpg)
 (defcustom habitrpg-api-user nil
   "API user"
-  )
+  :group 'habitrpg)
 (defcustom habitrpg-api-token nil
   "API token"
-  )
+  :group 'habitrpg)
 
 (defconst hrpg-repeat-interval 120)
 
 (defvar hrpg-timer)  
-(defvar hrpg-id "")
-(defvar hrpg-status "")
 (defvar hrpg-status-to-file nil)
 (defvar hrpg-tags-list nil)
 
@@ -65,32 +63,32 @@ With point on an `org-mode' headline add TASK if it isn't already there."
   (interactive)
   (save-window-excursion
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
-    (setq task (nth 4 (org-heading-components)))
-    (setq habitp (member "hrpghabit" (org-get-tags-at)))
-    (setq dailyp (member "hrpgdaily" (org-get-tags-at)))
-    (setq rewardp (member "hrpgreward" (org-get-tags-at)))
-    (cond
-     (habitp (setq type "habit"))
-     (dailyp (setq type "daily"))
-     (rewardp (setq type "reward"))
-     (t (setq type "todo")))
-
-    (let* ((beg 
-	    (progn
-	      (org-back-to-heading)
-	      (forward-line 1)
-	      (point)))
-           (end
-	    (progn
-	      (org-end-of-subtree)
-	      (point)))
-	   (text 
-	    (progn
-	      (buffer-substring beg end))))
-      (habitrpg-get-id task)
-      (unless (string=(nth 2 (org-heading-components)) "DONE")
-	(if (string= (symbol-name (car hrpg-id)) "nil")
-	    (habitrpg-create type task text))))))
+    (let ((task (nth 4 (org-heading-components)))
+	  type)
+      (cond
+       ((member "hrpghabit" (org-get-tags-at)) 
+	(setq type "habit"))
+       ((member "hrpgdaily" (org-get-tags-at))
+	(setq type "daily"))
+       ((member "hrpgreward" (org-get-tags-at))
+	(setq type "reward"))
+       (t (setq type "todo")))
+      (let* ((beg 
+	      (progn
+		(org-back-to-heading)
+		(forward-line 1)
+		(point)))
+	     (end
+	      (progn
+		(org-end-of-subtree)
+		(point)))
+	     (text 
+	      (progn
+		(buffer-substring beg end)))
+	     (id (habitrpg-get-id task)))
+	(unless (string=(nth 2 (org-heading-components)) "DONE")
+	  (if (string= (symbol-name (car id)) "nil")
+	      (habitrpg-create type task text)))))))
 
 (defun habitrpg-create (type task text)
   (request
@@ -107,26 +105,29 @@ With point on an `org-mode' headline add TASK if it isn't already there."
 
 (defun habitrpg-done ()
   "Update TASK on habitrpg."
-  (setq task (nth 4 (org-heading-components)))
-  (if (string= (nth 2 (org-heading-components)) "DONE")
-      (progn
-	(habitrpg-get-id task)
-	(habitrpg-upvote hrpg-id))))
+  (let ((task (nth 4 (org-heading-components))))
+    (if (string= (nth 2 (org-heading-components)) "DONE")
+	(let ((id (habitrpg-get-id task)))
+	  (habitrpg-upvote id)))))
+
+(defvar hrpg-id "ID for a habitrpg task")
 
 (defun habitrpg-get-id (task)
-    (request
-     (concat habitrpg-api-url "/user")
-     :headers `(("Accept" . "application/json")
-		("X-API-User" . ,habitrpg-api-user)
-		("X-API-Key" . ,habitrpg-api-token))
-     :parser 'json-read
-     :success (function*
-	       (lambda (&key data &allow-other-keys)
-		 (let* ((tasks (assoc-default 'tasks data))
-			(names (mapcar (lambda (task-id)
-				        (list (assoc-default 'text task-id) (car task-id))) tasks))
-			(id (assoc-default task names)))
-		   (setq hrpg-id id))))))
+  (request
+   (concat habitrpg-api-url "/user")
+   :headers `(("Accept" . "application/json")
+	      ("X-API-User" . ,habitrpg-api-user)
+	      ("X-API-Key" . ,habitrpg-api-token))
+   :parser 'json-read
+   :success (function*
+	     (lambda (&key data &allow-other-keys)
+	       (let* ((tasks (assoc-default 'tasks data))
+		      (names (mapcar (lambda (task-id)
+				       (list (assoc-default 'text task-id) (car task-id))) tasks)))
+		 (setq hrpg-id (assoc-default task names))))))
+  hrpg-id)
+	
+
 
 (defun habitrpg-upvote (hrpg-id &optional task type text direction)
   (if (string= (symbol-name (car hrpg-id)) "nil")
