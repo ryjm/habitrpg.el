@@ -15,10 +15,10 @@ Add to your .emacs:
     (setq habitrpg-api-user "ID HERE")
     (setq habitrpg-api-token "TOKEN HERE")
 
-Add these hooks if you want it to trigger after a state change.
+Add this hook if you want a DONE task to be marked as complete and a todo state change to add a task to habitrpg.com
 
-	(add-hook 'org-after-todo-state-change-hook 'habitrpg-add)
-	(add-hook 'org-after-todo-state-change-hook 'habitrpg-done 'append)
+	(add-hook 'org-after-todo-state-change-hook 'habitrpg-add 'append)
+
 
 Add a keybinding.
 

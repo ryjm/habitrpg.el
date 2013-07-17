@@ -59,36 +59,40 @@
 
 (defun habitrpg-add ()
   "Add to habitrpg.
-With point on an `org-mode' headline add TASK if it isn't already there."
+With point on an `org-mode' headline add TASK if it isn't already
+there. If its state is DONE, update."
   (interactive)
   (save-window-excursion
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
     (let ((task (nth 4 (org-heading-components)))
+	  (id (habitrpg-get-id task))
 	  type)
-      (cond
-       ((member "hrpghabit" (org-get-tags-at)) 
-	(setq type "habit"))
-       ((member "hrpgdaily" (org-get-tags-at))
-	(setq type "daily"))
-       ((member "hrpgreward" (org-get-tags-at))
-	(setq type "reward"))
-       (t (setq type "todo")))
-      (let* ((beg 
-	      (progn
-		(org-back-to-heading)
-		(forward-line 1)
-		(point)))
-	     (end
-	      (progn
-		(org-end-of-subtree)
-		(point)))
-	     (text 
-	      (progn
-		(buffer-substring beg end)))
-	     (id (habitrpg-get-id task)))
-	(unless (string=(nth 2 (org-heading-components)) "DONE")
-	  (if (string= (symbol-name (car id)) "nil")
-	      (habitrpg-create type task text)))))))
+      (if (not (string=(nth 2 (org-heading-components)) "DONE"))
+	  (progn
+	    (cond
+	     ((member "hrpghabit" (org-get-tags-at)) 
+	      (setq type "habit"))
+	     ((member "hrpgdaily" (org-get-tags-at))
+	      (setq type "daily"))
+	     ((member "hrpgreward" (org-get-tags-at))
+	      (setq type "reward"))
+	     (t (setq type "todo")))
+	    (let* ((beg 
+		    (progn
+		      (org-back-to-heading)
+		      (forward-line 1)
+		      (point)))
+		   (end
+		    (progn
+		      (org-end-of-subtree)
+		      (point)))
+		   (text 
+		    (progn
+		      (buffer-substring beg end))))
+	      (if (string= (symbol-name (car id)) "nil")
+		  (habitrpg-create type task text))))
+	(habitrpg-upvote id)))))
+
 
 (defun habitrpg-create (type task text)
   (request
@@ -103,12 +107,12 @@ With point on an `org-mode' headline add TASK if it isn't already there."
      :parser 'json-read
      :success (message "Created task!")))
 
-(defun habitrpg-done ()
-  "Update TASK on habitrpg."
-  (let ((task (nth 4 (org-heading-components))))
-    (if (string= (nth 2 (org-heading-components)) "DONE")
-	(let ((id (habitrpg-get-id task)))
-	  (habitrpg-upvote id)))))
+;; (defun habitrpg-done ()
+;;   "Update TASK on habitrpg."
+;;   (let ((task (nth 4 (org-heading-components))))
+;;     (if (string= (nth 2 (org-heading-components)) "DONE")
+;; 	(let ((id (habitrpg-get-id task)))
+;; 	  (habitrpg-upvote id)))))
 
 (defvar hrpg-id "ID for a habitrpg task")
 
