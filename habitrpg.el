@@ -40,6 +40,16 @@
 (provide 'habitrpg)
 
 (require 'cl)
+(require 'request)
+(defcustom habitrpg-api-url "https://beta.habitrpg.com/api/v1"
+  "API url"
+  )
+(defcustom habitrpg-api-user nil
+  "API user"
+  )
+(defcustom habitrpg-api-token nil
+  "API token"
+  )
 
 (defconst hrpg-repeat-interval 120)
 
@@ -51,8 +61,7 @@
 
 (defun habitrpg-add ()
   "Add to habitrpg.
-With point on an `org-mode' headline, use the shell command
-   `habit` to add to habitrpg if TASK isn't already there."
+With point on an `org-mode' headline add TASK if it isn't already there."
   (setq task (nth 4 (org-heading-components)))
   (setq habitp (member "hrpghabit" (org-get-tags-at)))
   (setq dailyp (member "hrpgdaily" (org-get-tags-at)))
@@ -66,7 +75,7 @@ With point on an `org-mode' headline, use the shell command
     (let* ((beg 
 	    (progn
 	      (org-back-to-heading)
-	      (line-move 1)
+	      (forward-line 1)
 	      (point)))
            (end
 	    (progn
@@ -75,36 +84,93 @@ With point on an `org-mode' headline, use the shell command
 	   (text 
 	    (progn
 	      (buffer-substring beg end))))
-    (habitrpg-get-id)
+    (habitrpg-get-id task)
     (unless (string=(nth 2 (org-heading-components)) "DONE")
-      (if (> 1 (string-to-number (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit task " hrpg-id " | wc -l &")))))
+      (if (string= (symbol-name (car hrpg-id)) "")
 	  (habitrpg-create type task text))))))
 
 (defun habitrpg-create (type task text)
-  (shell-command-to-string (concat "habit create_task " type " \"" task "\" False 0 \"" text "\" &")))
+  (request
+     (concat habitrpg-api-url "/user/task/") 
+     :type "POST"
+     :headers `(("Accept" . "application/json")
+		("X-API-User" . ,habitrpg-api-user)
+		("X-API-Key" . ,habitrpg-api-token))
+     :data `(("type" . ,type)
+	     ("text" . ,task)
+	     ("notes" . ,text))
+     :parser 'json-read
+     :success (message "Created task!")))
 
 (defun habitrpg-done ()
   "Update TASK on habitrpg."
   (setq task (nth 4 (org-heading-components)))
   (if (string= (nth 2 (org-heading-components)) "DONE")
-      (progn 
-	(habitrpg-get-id)
+      (progn
+	(habitrpg-get-id task)
 	(habitrpg-upvote hrpg-id))))
 
-(defun habitrpg-get-id ()
-  (setq hrpg-id (replace-regexp-in-string "\n$" "" (shell-command-to-string (concat "habit tasks | egrep 'text|id' | grep -B 1 \"" task "\" | sed -e 'q' | cut -d\"'\" -f4 &")))))
+(defun habitrpg-get-id (task)
+    (request
+     (concat habitrpg-api-url "/user")
+     :headers `(("Accept" . "application/json")
+		("X-API-User" . ,habitrpg-api-user)
+		("X-API-Key" . ,habitrpg-api-token))
+     :parser 'json-read
+     :success (function*
+	       (lambda (&key data &allow-other-keys)
+		 (let* ((tasks (assoc-default 'tasks data))
+			(names (mapcar (lambda (task-id)
+				        (list (assoc-default 'text task-id) (car task-id))) tasks))
+			(id (assoc-default task names)))
+		   (setq hrpg-id id))))))
 
-(defun habitrpg-upvote (hrpg-id &optional task type text)
-  "Upvote a task. Add task if it doesn't exist."
-  (if (string= hrpg-id "")
+(defun habitrpg-upvote (hrpg-id &optional task type text direction)
+  (if (string= (symbol-name (car hrpg-id)) "")
       (progn
-	(habitrpg-create type task text)
-	(habitrpg-get-id))
-    (setq hrpg-status (shell-command-to-string (concat "habit perform_task " hrpg-id " up &"))))
-  (if hrpg-status-to-file
-      (with-temp-file "~/tmp/hrpg-status"
-	(insert hrpg-status))))
+ 	(habitrpg-create type task text)
+ 	(habitrpg-get-id task))
+    (request
+     (concat habitrpg-api-url "/user/tasks/" (symbol-name (car hrpg-id)) "/"
+	     (unless direction "up") direction)
+     :type "POST"
+     :headers `(("Content-Type" . "application/json")
+		("Content-Length" . 0)
+		("X-API-User" . ,habitrpg-api-user)
+		("X-API-Key" . ,habitrpg-api-token))
+     :parser 'json-read
+     :success (function* (lambda (&key data &allow-other-keys) 
+			   (message "Updated task!")
+			   (if hrpg-status-to-file
+			       (with-temp-file "~/tmp/hrpg-status"
+				 (let* ((exp (assoc-default 'exp data))
+					(gp (assoc-default 'gp data))
+					(hp (assoc-default 'hp data))
+					(lvl (assoc-default 'lvl data)))
+				   (insert (concat "exp: " (number-to-string (truncate exp))
+						   " gp: " (number-to-string (truncate gp))
+						   " hp: " (number-to-string (truncate hp))
+						   " lvl: " (number-to-string (truncate lvl))))))))))))
 
+(defun habitrpg-get-id-at-point ()
+  (interactive)
+  (let ((point-task (buffer-substring (line-beginning-position) (line-end-position))))
+    (habitrpg-get-id point-task)))
+
+
+(defun habitrpg-upvote-at-point ()
+  "Upvote a task. Add task if it doesn't exist."
+  (interactive)
+  (habitrpg-get-id-at-point)
+  (let ((id hrpg-id))
+    (habitrpg-upvote hrpg-id)))
+
+(defun habitrpg-downvote-at-point ()
+  "Upvote a task. Add task if it doesn't exist."
+  (interactive)
+  (let ((id (habitrpg-get-id-at-point)))
+    (habitrpg-upvote id nil nil nil "down"))
+  (habitrpg-refresh-status))
 
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
@@ -112,12 +178,11 @@ Continuously upvote habits associated with the currently clocking task, based on
   (setq task (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal)))
   (if task
       (progn
-	(habitrpg-get-id)
+	(habitrpg-get-id task)
 	(setq hrpg-timer (run-at-time nil hrpg-repeat-interval 'habitrpg-upvote hrpg-id task "habit" "")))))
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
-  (if (member task hrpg-tags-list)
-      (cancel-timer hrpg-timer)))
+  (cancel-function-timers 'habitrpg-upvote))
 	  
 ;;; habitrpg.el ends here
