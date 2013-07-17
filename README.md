@@ -9,6 +9,7 @@ Tag (in org-mode) your habits and dailys with `hrpghabit`, `hrpgdaily`, and `hrp
 
 Installation
 ------------
+Install `request.el`, which you can get through el-get or package.el.
 
 Add to your .emacs:
 
