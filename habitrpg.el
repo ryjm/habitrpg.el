@@ -62,16 +62,19 @@
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline add TASK if it isn't already there."
-  (setq task (nth 4 (org-heading-components)))
-  (setq habitp (member "hrpghabit" (org-get-tags-at)))
-  (setq dailyp (member "hrpgdaily" (org-get-tags-at)))
-  (setq rewardp (member "hrpgreward" (org-get-tags-at)))
-  (cond
-   (habitp (setq type "habit"))
-   (dailyp (setq type "daily"))
-   (rewardp (setq type "reward"))
-   (t (setq type "todo")))
-  (save-excursion
+  (interactive)
+  (save-window-excursion
+    (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
+    (setq task (nth 4 (org-heading-components)))
+    (setq habitp (member "hrpghabit" (org-get-tags-at)))
+    (setq dailyp (member "hrpgdaily" (org-get-tags-at)))
+    (setq rewardp (member "hrpgreward" (org-get-tags-at)))
+    (cond
+     (habitp (setq type "habit"))
+     (dailyp (setq type "daily"))
+     (rewardp (setq type "reward"))
+     (t (setq type "todo")))
+
     (let* ((beg 
 	    (progn
 	      (org-back-to-heading)
@@ -84,10 +87,10 @@ With point on an `org-mode' headline add TASK if it isn't already there."
 	   (text 
 	    (progn
 	      (buffer-substring beg end))))
-    (habitrpg-get-id task)
-    (unless (string=(nth 2 (org-heading-components)) "DONE")
-      (if (string= (symbol-name (car hrpg-id)) "nil")
-	  (habitrpg-create type task text))))))
+      (habitrpg-get-id task)
+      (unless (string=(nth 2 (org-heading-components)) "DONE")
+	(if (string= (symbol-name (car hrpg-id)) "nil")
+	    (habitrpg-create type task text))))))
 
 (defun habitrpg-create (type task text)
   (request
