@@ -5,11 +5,13 @@ habitrpg.el
 
 Quick hack to integrate org-mode and habitrpg. Very much a work in progress. Adds a task to habitrpg.com after a TODO state change in org-mode or by calling the function `habitrpg-add`.
 
-Tag (in org-mode) your habits and dailys with `hrpghabit`, `hrpgdaily`, and `hrpgreward` to get them in the right category.
+Tag (in org-mode) your habits and dailys with `hrpghabit`, `hrpgdaily`, and `hrpgreward` to get them in the corresponding categories.
+
+You can try out the habitrpg-status function which opens a new buffer with your habitrpg data (might be a bit buggy). 
 
 Installation
 ------------
-Install `request.el`, which you can get through el-get or package.el.
+Install `request.el` and `deferred.el`, which you can get through el-get or package.el (M-x package-list-packages). 
 
 Add to your .emacs:
 
@@ -20,10 +22,10 @@ Add this hook if you want a DONE task to be marked as complete and a todo state 
 
 	(add-hook 'org-after-todo-state-change-hook 'habitrpg-add 'append)
 
-
-Add a keybinding.
+Add keybindings.
 
     (global-set-key (kbd "C-c C-x h") 'habitrpg-add)
+	(global-set-key (kbd "<f9> a") 'habitrpg-status)
 
 -------------------------------------------------------------------------------
 
