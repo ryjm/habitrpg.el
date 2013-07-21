@@ -11,11 +11,16 @@ Easy Install
 -----------
 Put this in an empty buffer (`*scratch*`for example), move cursor to bottom, and hit C-j.
 
-> (url-retrieve
-> "https://raw.github.com/ryjm/habitrpg.el/master/habitrpg-install.el"
->  (lambda (s)
->    (goto-char (point-max))
->    (eval-print-last-sexp)))
+```lisp
+;; C-j at end of this block to install habitrpg.el
+(url-retrieve
+"https://raw.github.com/ryjm/habitrpg.el/master/habitrpg-install.el"
+ (lambda (s)
+   (goto-char (point-max))
+   (eval-print-last-sexp)))
+```
+
+That's it! You will be prompted for an API key and token, or you can insert the default configuration into your .emacs (it will print in a buffer so you can copy and paste).
 
 Installation
 ------------
