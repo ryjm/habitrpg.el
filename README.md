@@ -28,7 +28,10 @@ Add keybindings.
     (global-set-key (kbd "C-c C-x h") 'habitrpg-add)
 	(global-set-key (kbd "<f9> a") 'habitrpg-status)
 
-You can then bring up the habitrpg buffer with `<f9> a`, and do `C-h m` to see the keybindings. 
+You can then bring up the habitrpg buffer with `<f9> a`, and do `C-h m` to see the keybindings.
+
+![buffer](http://imgur.com/tOgCUD8)
+![buffer2](http://i.imgur.com/w3XIzL9.gif)
 
 -------------------------------------------------------------------------------
 

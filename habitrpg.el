@@ -1069,7 +1069,10 @@ TITLE is the displayed title of the section."
 		      'face `((:box t)
 			      (:foreground ,(if (> 0.5 (habitrpg-x-color-luminance color))
                                "white" "black")) 
-			      (:background ,color))) "\n")
+			      (:background ,color))) " "
+		     (if (string= section-title 'reward)
+			 (propertize value 'face 'habitrpg-gold)
+		       "") "\n")
 		    (insert (propertize "[ID]\n" 'face 'font-lock-comment-face))
 		    (insert (propertize (concat task-id "\n") 'face 'font-lock-keyword-face))
 		    (goto-char (point-max))))
@@ -1091,7 +1094,6 @@ Return a value between 0 and 1."
   "Calculate the luminance of color composed of RED, BLUE and GREEN. Taken from `rainbow'.
 Return a value between 0 and 1."
   (/ (+ (* .2126 red) (* .7152 green) (* .0722 blue)) 256))
-
 
 (defun habitrpg-task-color (value)
   (let* ((value (string-to-number value))
@@ -1415,7 +1417,8 @@ there. If its state is DONE, update."
 		  (habitrpg-create type task text))))
 	(habitrpg-upvote id)))))
 
-(defun habitrpg-create (type task text)
+(defun habitrpg-create (type task text &optional value)
+  (setq value (or value ""))
   (request
      (concat habitrpg-api-url "/user/task/") 
      :type "POST"
@@ -1424,20 +1427,24 @@ there. If its state is DONE, update."
 		("X-API-Key" . ,habitrpg-api-token))
      :data `(("type" . ,type)
 	     ("text" . ,task)
-	     ("notes" . ,text))
+	     ("notes" . ,text)
+	     ("value" . ,value))
      :parser 'json-read
      :success (function*
 	       (lambda (&key data &allow-other-keys)
 		 (message "Creating task...")))))
 
-(defun habitrpg-new-task (type)
-  (interactive)
-  (let ((task (read-from-minibuffer "Task Name: "))
+(defun habitrpg-new-task (&optional type)
+  (let ((type (or type "todo"))
+	(task (read-from-minibuffer "Task Name: "))
 	(notes (read-from-minibuffer "Notes: "))
+	(value (read-from-minibuffer "Cost: "))
 	(p (point)))
-    (habitrpg-create type task notes)
+    (if (string= type 'reward)
+	(habitrpg-create type task notes value)
+      (habitrpg-create type task notes)
     (habitrpg-refresh-status)
-    (goto-char p)))
+    (goto-char p))))
 
 ;; (defun habitrpg-done ()
 ;;   "Update TASK on habitrpg."
@@ -1499,7 +1506,6 @@ there. If its state is DONE, update."
 		("X-API-Key" . ,habitrpg-api-token))
      :parser 'json-read
      :success (function* (lambda (&key data &allow-other-keys)
-			   (message "Updated task!")
 			   (if hrpg-status-to-file
 			       (with-temp-file "~/tmp/hrpg-status"
 				 (let* ((exp (assoc-default 'exp data))
@@ -1524,42 +1530,65 @@ there. If its state is DONE, update."
     (let* ((id (habitrpg-get-id-at-point))
 	  (section (habitrpg-current-section))
 	  (info (habitrpg-section-info section))
-	  (type (habitrpg-section-type section)))
+	  (type (habitrpg-section-title (habitrpg-section-parent section)))
+	  (p (point)))
       (habitrpg-upvote id)
       (message "Task updated: %s" 
 	       (car (car info)))
       (let ((inhibit-read-only t))
-	(unless (string= type "habits")
+	(if (or (string= type "habit") (string= type "reward"))
+	    (progn 
+	      (habitrpg-refresh-status)
+	      (goto-char p))
 	  (let ((beg (save-excursion
 		       (goto-char (habitrpg-section-beginning section))
 		       (point)))
 		(end (habitrpg-section-end section)))
 	    (if (< beg end)
-		(put-text-property beg end 'invisible t))))))))
-
-
+		(put-text-property beg end 'invisible t)))))
+      (goto-char p))))
 
 (defun habitrpg-downvote-at-point ()
   "Downvote a task. Add task if it doesn't exist."
   (interactive)
-  (let ((id (habitrpg-get-id-at-point)))
-    (habitrpg-upvote id nil nil nil "down"))
-  (habitrpg-refresh-status))
+  (end-of-visible-line)
+  (let ((id (habitrpg-get-id-at-point))
+	(p (point)))
+    (habitrpg-upvote id nil nil nil "down")
+    (message "Task downvoted: %s" (car (car (habitrpg-section-info (habitrpg-current-section)))))
+    (habitrpg-refresh-status)
+    (goto-char p)))
+
 
 (defun habitrpg-delete-at-point ()
-  (let ((id (habitrpg-get-id-at-point)))
-    (when id
-    (request
-     (concat habitrpg-api-url "/user/task/" id)
-     :type "DELETE"
-     :headers `(("Content-Type" . "application/json")
-		("X-API-User" . ,habitrpg-api-user)
-		("X-API-Key" . ,habitrpg-api-token))
-     :parser 'json-read
-     :success (function* 
-	       (lambda (&key data &allow-other-keys) 
-		 (message "Task deleted"))))))
-  (habitrpg-need-refresh))
+  (save-excursion
+    (end-of-visible-line)
+    (let* ((id (habitrpg-get-id-at-point))
+	   (section (habitrpg-current-section))
+	   (info (habitrpg-section-info section))
+	   (type (habitrpg-section-title (habitrpg-section-parent section))))
+      (when id
+	(request
+	 (concat habitrpg-api-url "/user/task/" id)
+	 :type "DELETE"
+	 :headers `(("Content-Type" . "application/json")
+		    ("X-API-User" . ,habitrpg-api-user)
+		    ("X-API-Key" . ,habitrpg-api-token))
+	 :parser 'json-read
+	 :complete (function*
+		    (lambda (&key data &allow-other-keys)
+		      (message "Task deleted!")))
+	 :status-code '((208 . (lambda (&rest _) (message "Got 208.")))
+			(418 . (lambda (&rest _) (message "Got 418."))))))
+      (let ((inhibit-read-only t))
+	(let ((beg (save-excursion
+		     (goto-char (habitrpg-section-beginning section))
+		     (point)))
+	      (end (habitrpg-section-end section)))
+	  (if (< beg end)
+	      (put-text-property beg end 'invisible t)))))))
+
+
 			   
 
 	    
