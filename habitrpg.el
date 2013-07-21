@@ -86,7 +86,6 @@
 (require 'thingatpt)
 (require 'ring)
 
-
 ;; Silences byte-compiler warnings
 (eval-and-compile
   (unless (fboundp 'declare-function)
@@ -380,6 +379,9 @@ The function is given one argument, the status buffer."
 
 (defun habitrpg-status ()
   (interactive)
+  (when (and (not habitrpg-api-user) (not habitrpg-api-token))
+    (setq habitrpg-api-user (read-from-minibuffer "API User ID: ")
+	  habitrpg-api-token (read-from-minibuffer "API Token: ")))
   (let ((buf (or (habitrpg-find-status-buffer 'habitrpg-status-mode) 
 		 (generate-new-buffer
 		  "*habitrpg:status*"))))
