@@ -11,12 +11,12 @@ Easy Install
 -----------
 Put this in an empty buffer (`*scratch*`for example), move cursor to bottom, and hit C-j.
 
-`(url-retrieve
-"https://raw.github.com/ryjm/habitrpg.el/master/habitrpg-install.el"
- (lambda (s)
-   (goto-char (point-max))
-   (eval-print-last-sexp)))
-`
+> (url-retrieve
+> "https://raw.github.com/ryjm/habitrpg.el/master/habitrpg-install.el"
+>  (lambda (s)
+>    (goto-char (point-max))
+>    (eval-print-last-sexp)))
+
 Installation
 ------------
 Install `request.el` and `deferred.el`, which you can get through el-get or package.el (M-x package-list-packages). I also included them in this repo.
