@@ -76,6 +76,6 @@
       (with-current-buffer buf
 	(goto-char (point-max))
 	(insert "\nCongrats, habitrpg is installed and ready to serve!\n" 
-		"Here is the default configuration:\n"
+		"Here is the default configuration to put in your .emacs:\n"
 		config)))))
 		
