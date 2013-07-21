@@ -73,13 +73,19 @@
 ;;; Code:
 
 
+
 (require 'cl)
-;(require 'cl-lib)
-(require 'request)
-(require 'request-deferred)
+(require 'json)
+(unless (require 'deferred nil t)
+  (load-file "deferred.el"))
+(unless (require 'request nil t)
+  (load-file "request.el"))
+(unless (require 'request-deferred nil t)
+  (load-file "request-deferred.el"))
 (require 'ansi-color)
 (require 'thingatpt)
 (require 'ring)
+
 
 ;; Silences byte-compiler warnings
 (eval-and-compile
@@ -349,7 +355,7 @@ This is calculated from `habitrpg-highlight-indentation'.")
     (define-key map (kbd "TAB") 'habitrpg-toggle-section)
     (define-key map (kbd "<backtab>") 'habitrpg-expand-collapse-section)
     (define-key map (kbd "C-c C-c") 'habitrpg-upvote-at-point)
-    (define-key map (kbd "C-c C-k") 'habitrpg-downvote-at-point)
+    (define-key map (kbd "C-c C-d") 'habitrpg-downvote-at-point)
     (define-key map (kbd "t") 'habitrpg-key-mode-popup-manage)
     (define-key map (kbd "g") 'habitrpg-refresh)
     (define-key map (kbd "G") 'habitrpg-refresh-all)
@@ -394,54 +400,55 @@ The function is given one argument, the status buffer."
 
 (defun habitrpg-refresh-status ()
   (habitrpg-create-buffer-sections
-    (request
-     (concat habitrpg-api-url "/user")
-     :type "GET"
-     :parser 'json-read
-     :headers `(("Accept" . "application/json")
-		("X-API-User" . ,habitrpg-api-user)
-		("X-API-Key" . ,habitrpg-api-token))
-     :sync t
-     :success (function* 
-	       (lambda (&key data &allow-other-keys)
-		 (let* ((stats (assoc-default 'stats data))
-			;; stats
-			(exp (assoc-default 'exp stats))
-			(gp (assoc-default 'gp stats))
-			(hp (assoc-default 'hp stats))
-			(maxhp (assoc-default 'maxHealth stats))
-			(lvl (assoc-default 'lvl stats))
-			(nextlvl (assoc-default 'toNextLevel stats))
-			;; auth info
-			(auth (assoc-default 'auth data))
-			(local (assoc-default 'local auth))
-			(user (assoc-default 'username local))
-			(born (assoc-default 'created local))
-			(uid (assoc-default 'id data))
-			;; flags - for inn
-			(flags (assoc-default 'flags data))
-			(rest (assoc-default 'rest flags))
-			;; pref
-			(pref (assoc-default 'preferences data))
-			(day (assoc-default 'dayStart pref)))
-		   (habitrpg-insert-status-line  (propertize user 'face 'habitrpg-user) "")
-		   (habitrpg-insert-status-line (concat "Experience: " 
-		   					(propertize
-		   					 (number-to-string (floor exp))
-		   					 'face 'habitrpg-exp))
-		   				(propertize (number-to-string nextlvl) 'face 'habitrpg-nextlvl))
-		   (habitrpg-insert-status-line (concat "Gold: " 
-		   					(propertize (number-to-string (floor gp))
-		   						    'face 'habitrpg-gold)) "")
-		   (habitrpg-insert-status-line (concat "Health: " 
-		   					(propertize (number-to-string (floor hp)) 
-		   						    'face 'habitrpg-hp))
-		   				(propertize (number-to-string maxhp) 'face 'habitrpg-maxhp))
-		   (habitrpg-insert-status-line (concat "Level: " 
-		   					(propertize 
-		   					 (number-to-string (floor lvl))
-		   					 'face 'habitrpg-lvl)) "\n")))))
     (habitrpg-with-section 'status nil
+      (request
+       (concat habitrpg-api-url "/user")
+       :type "GET"
+       :parser 'json-read
+       :headers `(("Accept" . "application/json")
+		  ("X-API-User" . ,habitrpg-api-user)
+		  ("X-API-Key" . ,habitrpg-api-token))
+       :sync t
+       :success (function* 
+		 (lambda (&key data &allow-other-keys)
+		   (let* ((stats (assoc-default 'stats data))
+			  ;; stats
+			  (exp (assoc-default 'exp stats))
+			  (gp (assoc-default 'gp stats))
+			  (hp (assoc-default 'hp stats))
+			  (maxhp (assoc-default 'maxHealth stats))
+			  (lvl (assoc-default 'lvl stats))
+			  (nextlvl (assoc-default 'toNextLevel stats))
+			  ;; auth info
+			  (auth (assoc-default 'auth data))
+			  (local (assoc-default 'local auth))
+			  (user (assoc-default 'username local))
+			  (born (assoc-default 'created local))
+			  (uid (assoc-default 'id data))
+			  ;; flags - for inn
+			  (flags (assoc-default 'flags data))
+			  (rest (assoc-default 'rest flags))
+			  ;; pref
+			  (pref (assoc-default 'preferences data))
+			  (day (assoc-default 'dayStart pref)))
+		     (habitrpg-insert-status-line  (propertize user 'face 'habitrpg-user) "")
+		     (habitrpg-insert-status-line (concat "Experience: " 
+							  (propertize
+							   (number-to-string (floor exp))
+							   'face 'habitrpg-exp))
+						  (propertize (number-to-string nextlvl) 'face 'habitrpg-nextlvl))
+		     (habitrpg-insert-status-line (concat "Gold: " 
+							  (propertize (number-to-string (floor gp))
+								      'face 'habitrpg-gold)) "")
+		     (habitrpg-insert-status-line (concat "Health: " 
+							  (propertize (number-to-string (floor hp)) 
+								      'face 'habitrpg-hp))
+						  (propertize (number-to-string maxhp) 'face 'habitrpg-maxhp))
+		     (habitrpg-insert-status-line (concat "Level: " 
+							  (propertize 
+							   (number-to-string (floor lvl))
+							   'face 'habitrpg-lvl)) "\n")))))
+      (insert "\n")
       (habitrpg-insert-tasks)
       (habitrpg-insert-habits)
       (habitrpg-insert-dailys)
@@ -793,14 +800,7 @@ in the corresponding directory."
       (habitrpg-goto-parent-section))))
 
 (defun habitrpg-goto-section (section)
-  (goto-char (habitrpg-section-beginning section))
-  (cond
-   (
-    (forward-line -1)
-    (habitrpg-goto-next-section))
-   ((and (eq (habitrpg-section-type section) 'commit)
-         (derived-mode-p 'habitrpg-log-mode))
-    )))
+  (goto-char (habitrpg-section-beginning section)))
 
 (defun habitrpg-goto-section-at-path (path)
   "Go to the section described by PATH."
@@ -999,8 +999,8 @@ TITLE is the displayed title of the section."
 
 
 (habitrpg-define-inserter tasks ()
-  (habitrpg-section 'tasks
- 		    "Tasks:" 'habitrpg-wash-tasks
+  (habitrpg-section 'todo
+ 		    "Todos:" 'habitrpg-wash-tasks
 		    (concat habitrpg-api-url "/user")
 		    :type "GET"
 		    :parser 'json-read
@@ -1018,185 +1018,127 @@ TITLE is the displayed title of the section."
 								    (assoc-default 'type task-id) " " 
 								    (assoc-default 'text task-id) " " 
 								    "id: "
-								    (symbol-name (car task-id)) "\n"))))))))))))
+								    (symbol-name (car task-id)) " "))
+						    (let* ((value (assoc-default 'value task-id)))
+						      (if value
+							  (insert "value: "
+								  (if (numberp value)
+								      (number-to-string value)
+								    value)
+								  "\n")
+							(insert "value: 0\n")))))))))))))
 (habitrpg-define-inserter habits ()
-  (habitrpg-section 'habits
- 		    "Habits:" 'habitrpg-wash-habits))
+  (habitrpg-section 'habit
+ 		    "Habits:" 'habitrpg-wash-tasks))
 
 (habitrpg-define-inserter dailys ()
-  (habitrpg-section 'dailys
- 		    "Dailys:" 'habitrpg-wash-dailys))
+  (habitrpg-section 'daily
+ 		    "Dailys:" 'habitrpg-wash-tasks))
 
 (habitrpg-define-inserter rewards ()
-  (habitrpg-section 'rewards
- 		    "Rewards:" 'habitrpg-wash-rewards))
+  (habitrpg-section 'reward
+ 		    "Rewards:" 'habitrpg-wash-tasks))
 
-(defun habitrpg-wash-task ()
-  (delete-blank-lines)
-  (if 
-      (if (eq (point) (line-end-position))
-	   (re-search-backward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)" nil t)
-	 (re-search-forward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)") nil t)
-      (let ((type (match-string-no-properties 1))
-	    (task-name (match-string-no-properties 2))
-	    (task-id (match-string-no-properties 3)))
-	(if (string= type "todo")
-	    (progn 
-	      (delete-region (line-beginning-position) (line-end-position))
-	      (insert task-name)
-	      (goto-char (line-beginning-position))
-	      (habitrpg-with-section task-name 'tasks
-		(habitrpg-set-section-info task-name)
-		(goto-char (line-end-position))
-		(newline)
-		(goto-char (line-beginning-position))
-		(habitrpg-with-section task-id 'id
-		  (habitrpg-set-section-info task-id)
-
-		  (newline))
-		t))
-	  (progn
-	    (goto-char (point-min))
-	    (delete-region (match-beginning 0) (match-end 0))
-	    (goto-char (match-beginning 0))
-	    (fixup-whitespace)
-	    (goto-char (line-beginning-position))))))
-  t)
+(defvar habitrpg-indentation-level 1)
 
 (defun habitrpg-wash-tasks ()
-  (let ((habitrpg-old-top-section nil))
-    (habitrpg-wash-sequence #'habitrpg-wash-task)))
+    (habitrpg-wash-sequence #'habitrpg-wash-task))
 
-(defun habitrpg-wash-habit ()
-  (delete-blank-lines)
-  (if 
-      (if (eq (point) (line-end-position))
-	   (re-search-backward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)" nil t)
-	 (re-search-forward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)") nil t)
+(defun habitrpg-wash-task ()
+  (if (looking-at "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\) value: \\(.*\\)")
       (let ((type (match-string-no-properties 1))
-	    (habit-name (match-string-no-properties 2))
-	    (habit-id (match-string-no-properties 3)))
-	(if (string= type "habit")
-	    (progn 
-	      (delete-region (line-beginning-position) (line-end-position))
-	      (insert habit-name)
-	      (goto-char (line-beginning-position))
-	      (habitrpg-with-section habit-name 'habits
-		(habitrpg-set-section-info habit-name)
-		(goto-char (line-end-position))
-		(newline)
-		(goto-char (line-beginning-position))
-		(habitrpg-with-section habit-id 'id
-		  (habitrpg-set-section-info habit-id)
-		  (insert (propertize (concat "    " habit-id) 'face 'font-lock-keyword-face))
-		  (newline))
-		t))
-	  (progn
-	    (goto-char (point-min))
-	    (delete-region (match-beginning 0) (match-end 0))
-	    (goto-char (match-beginning 0))
-	    (fixup-whitespace)
-	    (goto-char (line-beginning-position))))))
-  t)
+	    (task-name (match-string-no-properties 2))
+	    (task-id (match-string-no-properties 3))
+	    (value (match-string-no-properties 4))
+	    (parent section-title))
+	(if (string= type parent)
+	    (let ((habitrpg-section-hidden-default t))
+	      (habitrpg-with-section task-name 'tasks
+		(delete-region (point) (+ (line-end-position) 1))
+		(let ((p (point))	;task info
+		      (color (habitrpg-task-color value)))
+		  (if (not (eq (char-before) ?\n))
+		      (insert "\n"))
+		  (save-restriction
+		    (narrow-to-region p (point))
+		    (goto-char p)
+		    (insert 
+		     (make-string habitrpg-indentation-level ?\t)
+		     (propertize
+		      task-name 
+		      'face `((:box t)
+			      (:foreground ,(if (> 0.5 (habitrpg-x-color-luminance color))
+                               "white" "black")) 
+			      (:background ,color))) "\n")
+		    (insert (propertize "[ID]\n" 'face 'font-lock-comment-face))
+		    (insert (propertize (concat task-id "\n") 'face 'font-lock-keyword-face))
+		    (goto-char (point-max))))
+		(habitrpg-set-section-info `((,task-name . ,task-id) ("value" . value)))))
+	  (delete-region (point) (+ (line-end-position) 1)))
+	t)
+    nil))
 
-(defun habitrpg-wash-habits ()
-  (let ((habitrpg-old-top-section nil))
-    (habitrpg-wash-sequence #'habitrpg-wash-habit)))
+(defun habitrpg-x-color-luminance (color)
+  "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\"). Taken from `rainbow'.
+Return a value between 0 and 1."
+  (let* ((values (x-color-values color))
+	 (r (/ (car values) 256.0))
+         (g (/ (cadr values) 256.0))
+	 (b (/ (caddr values) 256.0)))
+    (habitrpg-color-luminance r g b)))
 
-(defun habitrpg-wash-daily ()
-  (delete-blank-lines)
-  (if 
-      (if (eq (point) (line-end-position))
-	   (re-search-backward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)" nil t)
-	 (re-search-forward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)") nil t)
-      (let ((type (match-string-no-properties 1))
-	    (daily-name (match-string-no-properties 2))
-	    (daily-id (match-string-no-properties 3)))
-	(if (string= type "daily")
-	    (progn 
-	      (delete-region (line-beginning-position) (line-end-position))
-	      (insert daily-name)
-	      (goto-char (line-beginning-position))
-	      (habitrpg-with-section daily-name 'dailys
-		(habitrpg-set-section-info daily-name)
-		(goto-char (line-end-position))
-		(newline)
-		(goto-char (line-beginning-position))
-		(habitrpg-with-section daily-id 'id
-		  (habitrpg-set-section-info daily-id)
-		  (insert (propertize (concat "    " daily-id) 'face 'font-lock-keyword-face))
-		  (newline))
-		t))
-	  (progn
-	    (goto-char (point-min))
-	    (delete-region (match-beginning 0) (match-end 0))
-	    (goto-char (match-beginning 0))
-	    (fixup-whitespace)
-	    (goto-char (line-beginning-position))))))
-  t)
-
-(defun habitrpg-wash-dailys ()
-  (let ((habitrpg-old-top-section nil))
-    (habitrpg-wash-sequence #'habitrpg-wash-daily)))
-
-(defun habitrpg-wash-reward ()
-  (delete-blank-lines)
-  (if 
-      (if (eq (point) (line-end-position))
-	   (re-search-backward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)" nil t)
-	 (re-search-forward "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\)") nil t)
-      (let ((type (match-string-no-properties 1))
-	    (reward-name (match-string-no-properties 2))
-	    (reward-id (match-string-no-properties 3)))
-	(if (string= type "reward")
-	    (progn 
-	      (delete-region (line-beginning-position) (line-end-position))
-	      (insert reward-name)
-	      (goto-char (line-beginning-position))
-	      (habitrpg-with-section reward-name 'rewards
-		(habitrpg-set-section-info reward-name)
-		(goto-char (line-end-position))
-		(newline)
-		(goto-char (line-beginning-position))
-		(habitrpg-with-section reward-id 'id
-		  (habitrpg-set-section-info reward-id)
-		  (insert (propertize (concat "    " reward-id) 'face 'font-lock-keyword-face))
-		  (newline))
-		t))
-	  (progn
-	    (goto-char (point-min))
-	    (delete-region (match-beginning 0) (match-end 0))
-	    (goto-char (match-beginning 0))
-	    (fixup-whitespace)
-	    (goto-char (line-beginning-position))))))
-  t)
-
-(defun habitrpg-wash-rewards ()
-  (let ((habitrpg-old-top-section nil))
-    (habitrpg-wash-sequence #'habitrpg-wash-reward)))
+(defun habitrpg-color-luminance (red green blue)
+  "Calculate the luminance of color composed of RED, BLUE and GREEN. Taken from `rainbow'.
+Return a value between 0 and 1."
+  (/ (+ (* .2126 red) (* .7152 green) (* .0722 blue)) 256))
 
 
-;; (defun habitrpg-wash-item ()
-;;   (let ((entry-regexp ".*u'items': ")) ;;u'\\(.*\\)',"))
-;;     (if (looking-at entry-regexp)
-;; 	(let ((item-name (match-string-no-properties 1)))
-;; 	  (delete-region (line-beginning-position) (line-end-position))
-;; 	  (delete-blank-lines)
-;; 	  (delete-region (match-beginning 0) (match-end 0))
-;; 	  (goto-char (match-beginning 0))
-;; 	  (fixup-whitespace)
-;; 	  (goto-char (line-beginning-position))
-;; 	  (insert item-name)
-;; 	  (goto-char (line-beginning-position))
-;; 	  (habitrpg-with-section item-name 'items
-;; 	    (habitrpg-set-section-info item-name)
-;; 	    (forward-line)))
-;;       (kill-line))
-;;     t))
-		 
-;; (defun habitrpg-wash-items ()
-;;   (let ((habitrpg-old-top-section nil))
-;;     (habitrpg-wash-sequence #'habitrpg-wash-item)))
+(defun habitrpg-task-color (value)
+  (let* ((value (string-to-number value))
+	 (worst "rgb(230, 184, 175)")
+	 (worse "rgb(244, 204, 204)")
+	 (bad "rgb(252, 229, 205)")
+	(neutral "rgb(255, 242, 204)")
+	(good "rgb(217, 234, 211)")
+	(better "rgb(208, 224, 227)")
+	(best "rgb(201, 218, 248)"))
+    (cond 
+     ((< value -20)
+      (hrgb worst))
+     ((< value -10)
+      (hrgb worse))
+     ((< value -10)
+      (hrgb bad))
+     ((< value -1)
+      (hrgb neutral))
+     ((< value 1)
+      (hrgb good))
+     ((< value 10)
+      (hrgb better))
+     (t
+      (hrgb best)))))
+
+(defun hrgb (color)
+  "Colorize a match with itself, with relative value."
+  (string-match "rgb(\s*\\([0-9]\\{1,3\\}\\(?:\s*%\\)?\\)\s*,\s*\\([0-9]\\{1,3\\}\\(?:\s*%\\)?\\)\s*,\s*\\([0-9]\\{1,3\\}\\(?:\s*%\\)?\\)\s*)" color)
+  (let ((r (* (string-to-number (match-string-no-properties 1 color)) 255.0))
+        (g (* (string-to-number (match-string-no-properties 2 color)) 255.0))
+        (b (* (string-to-number (match-string-no-properties 3 color)) 255.0)))
+    (format "#%02X%02X%02X" r g b)))
+
+
+
+
+;; (let ((status-text (cl-case status ; task title
+;;    ((old)
+;;     (format "Old   %s" task-name))
+;;    ((new)
+;;     (format "New        %s" task-name))
+;;    ((priority)
+;;     (format "priority %s" task-name))
+;;    (t
+;;     (format "?          %s" task-name)))))
+;; (insert (make-string magit-indentation-level ?\t) status-text "\n")))
 
 
 (defun habitrpg-wash-sequence (func)
@@ -1225,6 +1167,12 @@ If TYPE is nil, the section won't be highlighted."
        (setf (habitrpg-section-children ,s)
              (nreverse (habitrpg-section-children ,s)))
        ,s)))
+
+(defun habitrpg-set-section-needs-refresh-on-show (flag &optional section)
+  (setf (habitrpg-section-needs-refresh-on-show
+         (or section habitrpg-top-section))
+        flag))
+
 
 (defun habitrpg-new-section (title type)
   "Create a new section with title TITLE and type TYPE in current buffer.
@@ -1418,10 +1366,6 @@ and CLAUSES.
                                       habitrpg-section-action-success)))
                               clauses))))))
 
-(define-obsolete-function-alias 'habitrpg-add-action
-  'habitrpg-add-action-clauses "1.3.0")
-
-
 (defun habitrpg-goto-line (line)
   "Like `goto-line' but doesn't set the mark."
   (save-restriction
@@ -1471,7 +1415,6 @@ there. If its state is DONE, update."
 		  (habitrpg-create type task text))))
 	(habitrpg-upvote id)))))
 
-
 (defun habitrpg-create (type task text)
   (request
      (concat habitrpg-api-url "/user/task/") 
@@ -1490,9 +1433,11 @@ there. If its state is DONE, update."
 (defun habitrpg-new-task (type)
   (interactive)
   (let ((task (read-from-minibuffer "Task Name: "))
-	(notes (read-from-minibuffer "Notes: ")))
-    (habitrpg-create type task notes))
-  (habitrpg-refresh-status))
+	(notes (read-from-minibuffer "Notes: "))
+	(p (point)))
+    (habitrpg-create type task notes)
+    (habitrpg-refresh-status)
+    (goto-char p)))
 
 ;; (defun habitrpg-done ()
 ;;   "Update TASK on habitrpg."
@@ -1568,20 +1513,30 @@ there. If its state is DONE, update."
 
 
 (defun habitrpg-get-id-at-point ()
-  (interactive)
-  (let ((id (habitrpg-section-info (habitrpg-current-section))))
+  (let ((id (cdr (car (habitrpg-section-info (habitrpg-current-section))))))
     id))
-
 
 (defun habitrpg-upvote-at-point ()
   "Upvote a task. Add task if it doesn't exist."
   (interactive)  
-  (let (id (habitrpg-get-id-at-point))
-    (habitrpg-upvote id)
-    (message "Task updated: %s" (habitrpg-section-info (habitrpg-current-section)))
-    (let ((inhibit-read-only t))
-      (unless (string= (habitrpg-section-type (habitrpg-current-section)) "habits")
-	(habitrpg-cancel-section (habitrpg-current-section))))))
+  (save-excursion
+    (end-of-visible-line)
+    (let* ((id (habitrpg-get-id-at-point))
+	  (section (habitrpg-current-section))
+	  (info (habitrpg-section-info section))
+	  (type (habitrpg-section-type section)))
+      (habitrpg-upvote id)
+      (message "Task updated: %s" 
+	       (car (car info)))
+      (let ((inhibit-read-only t))
+	(unless (string= type "habits")
+	  (let ((beg (save-excursion
+		       (goto-char (habitrpg-section-beginning section))
+		       (point)))
+		(end (habitrpg-section-end section)))
+	    (if (< beg end)
+		(put-text-property beg end 'invisible t))))))))
+
 
 
 (defun habitrpg-downvote-at-point ()
@@ -1615,11 +1570,17 @@ Continuously upvote habits associated with the currently clocking task, based on
        (if task
 	   (let* ((id (habitrpg-get-id task)))
 	     (setq hrpg-timer (run-at-time nil hrpg-repeat-interval
-					   'habitrpg-upvote hrpg-id task "habit" ""))))))
+					   'habitrpg-upvote id task "habit" ""))))))
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
   (cancel-function-timers 'habitrpg-upvote))
+
+(defun habitrpg-change-server ()
+  (interactive)
+  (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
+      (setq habitrpg-api-url "https://www.habitrpg.com/api/v1")
+    (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1")))
 
 (provide 'habitrpg)
 (require 'habitrpg-key-mode)	  

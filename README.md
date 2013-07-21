@@ -7,16 +7,17 @@ Quick hack to integrate org-mode and habitrpg. Very much a work in progress. Add
 
 Tag (in org-mode) your habits and dailys with `hrpghabit`, `hrpgdaily`, and `hrpgreward` to get them in the corresponding categories.
 
-You can try out the habitrpg-status function which opens a new buffer with your habitrpg data (might be a bit buggy). 
-
 Installation
 ------------
-Install `request.el` and `deferred.el`, which you can get through el-get or package.el (M-x package-list-packages). 
+Install `request.el` and `deferred.el`, which you can get through el-get or package.el (M-x package-list-packages). I also included them in this repo.
+
+Clone this repo: `git clone https://github.com/ryjm/habitrpg.el`
 
 Add to your .emacs:
 
-    (setq habitrpg-api-user "ID HERE")
-    (setq habitrpg-api-token "TOKEN HERE")
+    (add-to-list 'load-path "path/to/repo/habitrpg.el")
+    (setq habitrpg-api-user "ID-HERE")
+    (setq habitrpg-api-token "TOKEN-HERE")
 
 Add this hook if you want a DONE task to be marked as complete and a todo state change to add a task to habitrpg.com
 
@@ -26,6 +27,8 @@ Add keybindings.
 
     (global-set-key (kbd "C-c C-x h") 'habitrpg-add)
 	(global-set-key (kbd "<f9> a") 'habitrpg-status)
+
+You can then bring up the habitrpg buffer with `<f9> a`, and do `C-h m` to see the keybindings. 
 
 -------------------------------------------------------------------------------
 
