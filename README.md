@@ -7,15 +7,25 @@ Integrate org-mode and habitrpg. Very much a work in progress. Adds a task to ha
 
 Tag (in org-mode) your habits and dailys with `hrpghabit`, `hrpgdaily`, and `hrpgreward` to get them in the corresponding categories.
 
+Easy Install
+-----------
+Put this in an empty buffer (`*scratch*`for example), move cursor to bottom, and hit C-j.
+
+`(url-retrieve
+"https://raw.github.com/ryjm/habitrpg.el/master/habitrpg-install.el"
+ (lambda (s)
+   (goto-char (point-max))
+   (eval-print-last-sexp)))
+`
 Installation
 ------------
 Install `request.el` and `deferred.el`, which you can get through el-get or package.el (M-x package-list-packages). I also included them in this repo.
 
 Clone this repo: `git clone https://github.com/ryjm/habitrpg.el`
 
-Add to your .emacs:
+Add to your .emacs (if you used the install script the path will be in .emacs.d):
 
-    (add-to-list 'load-path "path/to/repo/habitrpg.el")
+    (add-to-list 'load-path "path/to/repo/habitrpg.el") 
     (setq habitrpg-api-user "ID-HERE")
     (setq habitrpg-api-token "TOKEN-HERE")
 
