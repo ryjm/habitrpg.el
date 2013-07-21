@@ -30,7 +30,7 @@ Add keybindings.
 
 You can then bring up the habitrpg buffer with `<f9> a`, and do `C-h m` to see the keybindings.
 
-![buffer](http://i.imgur.com/tOgCUD8.png)
+![buffer](http://i.imgur.com/M5EfSkd.png)
 ![buffer2](http://i.imgur.com/w3XIzL9.gif)
 
 -------------------------------------------------------------------------------
