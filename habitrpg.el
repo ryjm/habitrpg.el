@@ -1494,30 +1494,26 @@ there. If its state is DONE, update."
 
 
 (defun habitrpg-upvote (id &optional task type text direction)
-  (if (string= id "nil")
-      (progn
- 	(habitrpg-create type task text)
- 	(setq id (habitrpg-get-id task)))
-    (request
-     (concat habitrpg-api-url "/user/tasks/" id "/"
-	     (unless direction "up") direction)
-     :type "POST"
-     :headers `(("Content-Type" . "application/json")
-		("Content-Length" . 0)
-		("X-API-User" . ,habitrpg-api-user)
-		("X-API-Key" . ,habitrpg-api-token))
-     :parser 'json-read
-     :success (function* (lambda (&key data &allow-other-keys)
-			   (if hrpg-status-to-file
-			       (with-temp-file "~/tmp/hrpg-status"
-				 (let* ((exp (assoc-default 'exp data))
-					(gp (assoc-default 'gp data))
-					(hp (assoc-default 'hp data))
-					(lvl (assoc-default 'lvl data)))
-				   (insert (concat "exp: " (number-to-string (truncate exp))
-						   " gp: " (number-to-string (truncate gp))
-						   " hp: " (number-to-string (truncate hp))
-						   " lvl: " (number-to-string (truncate lvl))))))))))))
+  (request
+   (concat habitrpg-api-url "/user/tasks/" id "/"
+	   (unless direction "up") direction)
+   :type "POST"
+   :headers `(("Content-Type" . "application/json")
+	      ("Content-Length" . 0)
+	      ("X-API-User" . ,habitrpg-api-user)
+	      ("X-API-Key" . ,habitrpg-api-token))
+   :parser 'json-read
+   :success (function* (lambda (&key data &allow-other-keys)
+			 (if hrpg-status-to-file
+			     (with-temp-file "~/tmp/hrpg-status"
+			       (let* ((exp (assoc-default 'exp data))
+				      (gp (assoc-default 'gp data))
+				      (hp (assoc-default 'hp data))
+				      (lvl (assoc-default 'lvl data)))
+				 (insert (concat "exp: " (number-to-string (truncate exp))
+						 " gp: " (number-to-string (truncate gp))
+						 " hp: " (number-to-string (truncate hp))
+						 " lvl: " (number-to-string (truncate lvl)))))))))))
 
 
 (defun habitrpg-get-id-at-point ()
