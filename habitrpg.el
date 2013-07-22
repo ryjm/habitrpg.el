@@ -767,7 +767,15 @@ in the corresponding directory."
   (interactive)
   (if (eq (point) 1)
       (message "No previous section")
-    (habitrpg-goto-section (habitrpg-find-section-before (point)))))
+    (let ((p (point)))
+      (habitrpg-goto-section (habitrpg-find-section-before (point)))
+      (forward-char)
+      (when (eq p (point))
+	(beginning-of-line)
+	(habitrpg-goto-section (habitrpg-find-section-before (point)))
+	(forward-char)))))
+
+
 
 (defun habitrpg-goto-parent-section ()
   "Go to the parent section."
@@ -1055,16 +1063,16 @@ TITLE is the displayed title of the section."
 	    (parent section-title))
 	(if (string= type parent)
 	    (let ((habitrpg-section-hidden-default t))
+		;; (if (char-before)
+		;;     (insert "\n"))
 	      (habitrpg-with-section task-name 'tasks
 		(delete-region (point) (+ (line-end-position) 1))
 		(let ((p (point))	;task info
 		      (color (habitrpg-task-color value)))
-		  (if (not (eq (char-before) ?\n))
-		      (insert "\n"))
 		  (save-restriction
 		    (narrow-to-region p (point))
 		    (goto-char p)
-		    (insert 
+		    (insert
 		     (make-string habitrpg-indentation-level ?\t)
 		     (propertize
 		      task-name 
@@ -1075,13 +1083,19 @@ TITLE is the displayed title of the section."
 		     (if (string= section-title 'reward)
 			 (propertize value 'face 'habitrpg-gold)
 		       "") "\n")
-		    (insert (propertize "[ID]\n" 'face 'font-lock-comment-face))
-		    (insert (propertize (concat task-id "\n") 'face 'font-lock-keyword-face))
+		    (habitrpg-insert-info task-id)
 		    (goto-char (point-max))))
 		(habitrpg-set-section-info `((,task-name . ,task-id) ("value" . value)))))
-	  (delete-region (point) (+ (line-end-position) 1)))
+	    (delete-region (point) (+ (line-end-position) 1)))
 	t)
-    nil))
+    (forward-line)))
+
+(defun habitrpg-insert-info (task-id)
+  (habitrpg-with-section nil 'info
+    (insert (propertize "[ID]\n" 'face 'font-lock-comment-face))
+    (insert (propertize (concat task-id "\n") 'face 'font-lock-keyword-face))
+    (goto-char (point-max))))
+
 
 (defun habitrpg-x-color-luminance (color)
   "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\"). Taken from `rainbow'.
