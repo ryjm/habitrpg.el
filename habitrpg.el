@@ -1464,10 +1464,11 @@ there. If its state is DONE, update."
      :headers `(("Accept" . "application/json")
 		("X-API-User" . ,habitrpg-api-user)
 		("X-API-Key" . ,habitrpg-api-token))
-     :parser 'json-read
-     :success (function*
-	       (lambda (&key data &allow-other-keys)
-		 (let* ((tasks (assoc-default 'tasks data))
+     :parser 'json-read)
+     (deferred:nextc it
+       (lambda (response)
+		 (let* ((data (request-response-data response))
+			(tasks (assoc-default 'tasks data))
 			(names (mapcar 
 				(lambda (task-id)
 				  (let* ((completed (assoc-default 'completed task-id)))
@@ -1483,13 +1484,10 @@ there. If its state is DONE, update."
 						       'text task-id)
 						      task))
 					(list (assoc-default 'text task-id) (car task-id))))) tasks)))
-			(setq hrpg-id (symbol-name (car (assoc-default task names))))))))
-    (deferred:nextc it
-      (lambda ()
-	(if hrpg-id
-	    (message "Task ID retrieved, updating task")
-	  (message "Task ID not found!")))))
+		   (setq hrpg-id (symbol-name (car (assoc-default task names))))
+		   (message "Got id %S" hrpg-id)))))
   hrpg-id)
+
 	
 
 
