@@ -1470,8 +1470,10 @@ there. If its state is DONE, update."
 ;; 	  (habitrpg-upvote id)))))
 
 (defvar hrpg-id nil "ID for a habitrpg task")
+(defvar hrpg-task nil "habitrpg task")
 
 (defun habitrpg-get-id (task)
+  (lexical-let ((t task))
   (deferred:$
     (request-deferred
      (concat habitrpg-api-url "/user")
@@ -1496,10 +1498,10 @@ there. If its state is DONE, update."
 					       (assoc-default 'type task-id) "habit")) 
 					     (string= (assoc-default
 						       'text task-id)
-						      task))
+						      t))
 					(list (assoc-default 'text task-id) (car task-id))))) tasks)))
-		   (setq hrpg-id (symbol-name (car (assoc-default task names))))
-		   (message "Got id %S" hrpg-id)))))
+		   (setq hrpg-id (symbol-name (car (assoc-default t names))))
+		   (message "Got id %S" hrpg-id))))))
   hrpg-id)
 
 	
