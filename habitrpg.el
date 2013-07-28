@@ -1501,11 +1501,11 @@ there. If its state is DONE, update."
 						      t))
 					(list (assoc-default 'text task-id) (car task-id))))) tasks)))
 		   (setq hrpg-id (symbol-name (car (assoc-default t names))))
-		   (message "Got id %S" hrpg-id))))))
+		   (message "Got id %S" hrpg-id))))
+     (deferred:nextc it
+       (lambda () 
+	 hrpg-id))))
   hrpg-id)
-
-	
-
 
 (defun habitrpg-upvote (id &optional task type text direction)
   (request
@@ -1609,7 +1609,7 @@ there. If its state is DONE, update."
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
   (let* ((task (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal))))
        (if task
-	   (let* ((id (habitrpg-get-id task)))
+	   (let ((id (habitrpg-get-id task)))
 	     (setq hrpg-timer (run-at-time nil hrpg-repeat-interval
 					   'habitrpg-upvote id task "habit" ""))))))
 
