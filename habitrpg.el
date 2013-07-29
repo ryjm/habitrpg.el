@@ -414,6 +414,9 @@ The function is given one argument, the status buffer."
       (habitrpg-insert-habits)
       (habitrpg-insert-dailys)
       (habitrpg-insert-rewards)
+      (habitrpg-insert-eggs)
+      (habitrpg-insert-potions)
+      (habitrpg-insert-pets)
       (kill-buffer "*request*"))))
 			 
 (defun habitrpg-mode ()
@@ -1187,6 +1190,10 @@ TITLE is the displayed title of the section."
 			      (lambda (&key data &allow-other-keys)
 				(with-current-buffer (get-buffer-create "*request*")
 				  (let* ((tasks (assoc-default 'tasks data))
+					 (items (assoc-default 'items data))
+					 (eggs (assoc-default 'eggs items))
+					 (potions (assoc-default 'hatchingPotions items))
+					 (pets (assoc-default 'pets items))
 					 (names (dolist (task-id tasks)
 						  (unless (string= (assoc-default 'completed task-id) "t")
 						    (insert (concat "type: "
@@ -1201,7 +1208,21 @@ TITLE is the displayed title of the section."
 								      (number-to-string value)
 								    value)
 								  "\n")
-							(insert "value: 0\n")))))))))))))
+							(insert "value: 0\n"))))))
+					 (eggnames (dotimes (i (length eggs))
+						     (let ((egg (aref eggs i)))
+						       (insert (concat "type: egg " (assoc-default 'name egg) " Egg"
+								       " id: 0" " value: 0" "\n")))))
+					 (potnames (dotimes (i (length potions))
+						     (let ((pot (aref potions i)))
+						       (insert (concat "type: potion " pot
+								       " id: 0" " value: 0" "\n")))))
+					 (petnames (dotimes (i (length pets))
+						     (let ((pet (aref pets i)))
+						       (insert (concat "type: pet " pet
+								       " id: 0" " value: 0" "\n"))))))))))))
+
+
 (habitrpg-define-inserter habits ()
   (habitrpg-section 'habit
  		    "Habits:" 'habitrpg-wash-tasks))
@@ -1211,6 +1232,15 @@ TITLE is the displayed title of the section."
 (habitrpg-define-inserter rewards ()
   (habitrpg-section 'reward
  		    "Rewards:" 'habitrpg-wash-tasks))
+(habitrpg-define-inserter eggs ()
+  (habitrpg-section 'egg
+ 		    "Eggs:" 'habitrpg-wash-tasks))
+(habitrpg-define-inserter potions ()
+  (habitrpg-section 'potion
+ 		    "Potions:" 'habitrpg-wash-tasks))
+(habitrpg-define-inserter pets ()
+  (habitrpg-section 'pet
+ 		    "Stable:" 'habitrpg-wash-tasks))
 
 (defvar habitrpg-indentation-level 1)
 
