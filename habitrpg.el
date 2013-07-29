@@ -1374,10 +1374,10 @@ there. If its state is DONE, update."
 		 (message "Creating task...")))))
 
 (defun habitrpg-new-task (&optional type)
-  (let ((type (or type "todo"))
+  (let* ((type (or type "todo"))
 	(task (read-from-minibuffer "Task Name: "))
 	(notes (read-from-minibuffer "Notes: "))
-	(value (read-from-minibuffer "Cost: "))
+	(value (when (string= type "reward") (read-from-minibuffer "Cost: ")))
 	(p (point)))
     (if (string= type 'reward)
 	(habitrpg-create type task notes value)
