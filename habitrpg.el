@@ -123,55 +123,18 @@
   :group 'tools)
 
 (defcustom habitrpg-api-url "https://beta.habitrpg.com/api/v1"
-  "API url"
+  "API url."
   :group 'habitrpg)
 (defcustom habitrpg-api-user nil
-  "API user"
+  "API user id."
   :group 'habitrpg)
 (defcustom habitrpg-api-token nil
-  "API token"
+  "API token."
   :group 'habitrpg)
 
 (cl-eval-when (load eval)
   (defalias 'habitrpg-set-variable-and-refresh 'set-default))
 
-(defcustom habitrpg-highlight-whitespace t
-  "Specify where to highlight whitespace errors.
-See `habitrpg-highlight-trailing-whitespace',
-`habitrpg-highlight-indentation'.  The symbol t means in all diffs,
-`status' means only in the status buffer, and nil means nowhere."
-  :group 'habitrpg
-  :type '(choice (const :tag "Always" t)
-                 (const :tag "Never" nil)
-                 (const :tag "In status buffer" status))
-  :set 'habitrpg-set-variable-and-refresh)
-
-(defcustom habitrpg-highlight-trailing-whitespace t
-  "Whether to highlight whitespace at the end of a line in diffs.
-Used only when `habitrpg-highlight-whitespace' is non-nil."
-  :group 'habitrpg
-  :type 'boolean
-  :set 'habitrpg-set-variable-and-refresh)
-
-(defcustom habitrpg-highlight-indentation nil
-  "Highlight the \"wrong\" indentation style.
-Used only when `habitrpg-highlight-whitespace' is non-nil.
-
-The value is a list of cons cells.  The car is a regular
-expression, and the cdr is the value that applies to repositories
-whose directory matches the regular expression.  If more than one
-item matches, then the *last* item in the list applies.  So, the
-default value should come first in the list.
-
-If the value is `tabs', highlight indentation with tabs.  If the
-value is an integer, highlight indentation with at least that
-many spaces.  Otherwise, highlight neither."
-  :group 'habitrpg
-  :type `(repeat (cons (string :tag "Directory regexp")
-                       (choice (const :tag "Tabs" tabs)
-                               (integer :tag "Spaces" :value ,tab-width)
-                               (const :tag "Neither" nil))))
-  :set 'habitrpg-set-variable-and-refresh)
 
 (defgroup habitrpg-faces nil
   "Customize the appearance of Habitrpg."
@@ -195,28 +158,9 @@ Many Habitrpg faces inherit from this one by default."
   "Face for tags."
   :group 'habitrpg-faces)
 
-(defface habitrpg-item-highlight
-  '((t :bold t))
-  ;; We used to inherit from `highlight', but:
-  "Face for highlighting the current item.
-
-This face should not set the background if the `habitrpg-diff-*'
-faces, respectively the faces they inherit from, also make use of
-the `:background' face attribute.  Otherwise the diff faces won't
-have any effect.
-
-To disable highlighting of the current item completely, make this
-face inherit from `default' and remove all other attributes."
-  :group 'habitrpg-faces)
-
 (defface habitrpg-item-mark
   '((t :inherit secondary-selection))
   "Face for highlighting marked item."
-  :group 'habitrpg-faces)
-
-(defface habitrpg-whitespace-warning-face
-  '((t :inherit trailing-whitespace))
-  "Face for highlighting whitespace errors in Habitrpg diffs."
   :group 'habitrpg-faces)
 
 (defface habitrpg-header
@@ -224,21 +168,6 @@ face inherit from `default' and remove all other attributes."
   "Face for generic header lines.
 
 Many Habitrpg faces inherit from this one by default."
-  :group 'habitrpg-faces)
-
-(defface habitrpg-section-title
-  '((t :inherit habitrpg-header))
-  "Face for section titles."
-  :group 'habitrpg-faces)
-
-(defface habitrpg-stats
-  '((t :inherit habitrpg-header))
-  "Face for branches."
-  :group 'habitrpg-faces)
-
-(defface habitrpg-tag
-  '((t :inherit habitrpg-header))
-  "Face for tags."
   :group 'habitrpg-faces)
 
 (defface habitrpg-log-graph
@@ -250,14 +179,6 @@ Many Habitrpg faces inherit from this one by default."
   :group 'habitrpg-faces)
 
 (defface habitrpg-user
-  '((((class color) (background light))
-     :foreground "firebrick")
-    (((class color) (background dark))
-     :foreground "tomato"))
-"face"
-  :group 'habitrpg-faces)
-
-(defface habitrpg-overdue
   '((((class color) (background light))
      :foreground "firebrick")
     (((class color) (background dark))
@@ -325,11 +246,6 @@ Many Habitrpg faces inherit from this one by default."
   "Face for Stacked Git patches."
   :group 'habitrpg-faces)
 
-(defface habitrpg-whitespace-warning-face
-  '((t :inherit trailing-whitespace))
-  "face"
-  :group 'habitrpg-faces)
-
 (defface habitrpg-maxhp
   '((((class color) (background light))
      :box t
@@ -342,15 +258,7 @@ Many Habitrpg faces inherit from this one by default."
   "face"
   :group 'habitrpg-faces)
 
-
-
-
 (defvar habitrpg-tmp-buffer-name " *habitrpg-tmp*")
-
-(defvar habitrpg-current-indentation nil
-  "Indentation highlight used in the current buffer.
-This is calculated from `habitrpg-highlight-indentation'.")
-(make-variable-buffer-local 'habitrpg-current-indentation)
 
 (defconst hrpg-repeat-interval 120)
 (defvar habitrpg-mode-hook nil "Hook run by `habitrpg-status-mode'.")
@@ -358,8 +266,6 @@ This is calculated from `habitrpg-highlight-indentation'.")
 (defvar hrpg-timer)  
 (defvar hrpg-status-to-file nil)
 (defvar hrpg-tags-list nil)
-
-
 
 (defvar habitrpg-refresh-function nil)
 (make-variable-buffer-local 'habitrpg-refresh-function)
@@ -483,7 +389,6 @@ The function is given one argument, the status buffer."
       (habitrpg-insert-rewards)
       (kill-buffer "*request*"))))
 			 
-
 (defun habitrpg-mode ()
   "Review the status of your habitrpg characters.
 
@@ -496,11 +401,6 @@ The function is given one argument, the status buffer."
         mode-name "Habitrpg"
         mode-line-process "")
   (use-local-map habitrpg-mode-map)
-  ;; Emacs' normal method of showing trailing whitespace gives weird
-  ;; results when `habitrpg-whitespace-warning-face' is different from
-  ;; `trailing-whitespace'.
-  (if (and habitrpg-highlight-whitespace habitrpg-highlight-trailing-whitespace)
-      (setq show-trailing-whitespace nil))
   (run-mode-hooks 'habitrpg-mode-hook))
 
 (define-derived-mode habitrpg-status-mode habitrpg-mode "Habitrpg"
@@ -509,7 +409,7 @@ The function is given one argument, the status buffer."
 \\{habitrpg-status-mode-map}"
   :group 'habitrpg)
 
-(defun habitrpg-cmd-output (args)
+(defun habitrpg-json-output (args)
   (with-output-to-string
     (with-current-buffer standard-output
       (unless (get-buffer "*request*")
@@ -517,12 +417,11 @@ The function is given one argument, the status buffer."
 		 args))
       (insert-buffer-substring (get-buffer "*request*")))))
 
-
 (defun habitrpg-string (&rest args)
   (habitrpg-trim-line (habitrpg-output args)))
 
 (defun habitrpg-output (args)
-  (habitrpg-cmd-output (append args)))
+  (habitrpg-json-output (append args)))
 
 (defun habitrpg-trim-line (str)
   (if (string= str "")
@@ -531,8 +430,9 @@ The function is given one argument, the status buffer."
         (substring str 0 (- (length str) 1))
       str)))
 
-(defun habitrpg-cmd-insert (cmd args)
-  (insert (habitrpg-cmd-output args)))
+(defun habitrpg-json-insert (cmd args)
+  (insert (habitrpg-json-output args)))
+
 (defun habitrpg-for-all-buffers (func &optional dir)
   (dolist (buf (buffer-list))
     (with-current-buffer buf
@@ -545,131 +445,6 @@ The function is given one argument, the status buffer."
   (if (string-match "habitrpg" (buffer-name))
       (switch-to-buffer buf)
     (pop-to-buffer buf)))
-
-;;; Macros
-
-(defmacro habitrpg-with-refresh (&rest body)
-  (declare (indent 0))
-  `(habitrpg-refresh-wrapper (lambda () ,@body)))
-
-(defun habitrpg-current-section ()
-  "Return the Habitrpg section at point."
-  (habitrpg-find-section-at (point)))
-
-(defvar habitrpg-highlighted-section t)
-(defvar habitrpg-highlight-overlay nil)
-
-(defun habitrpg-refresh-buffer (&optional buffer)
-  (with-current-buffer (or buffer (current-buffer))
-    (let* ((old-line (line-number-at-pos))
-           (old-point (point))
-           (old-section (habitrpg-current-section))
-           (old-path (and old-section
-                          (habitrpg-section-path (habitrpg-current-section)))))
-      (beginning-of-line)
-      (let ((section-line (and old-section
-                               (count-lines
-                                (habitrpg-section-beginning old-section)
-                                (point))))
-            (line-char (- old-point (point))))
-        (if habitrpg-refresh-function
-            (apply habitrpg-refresh-function
-                   habitrpg-refresh-args))
-        (let ((s (and old-path (habitrpg-find-section old-path habitrpg-top-section))))
-          (cond (s
-                 (goto-char (habitrpg-section-beginning s))
-                 (forward-line section-line)
-                 (forward-char line-char))
-                (t
-                 (habitrpg-goto-line old-line)))
-          (dolist (w (get-buffer-window-list (current-buffer)))
-            (set-window-point w (point)))
-          (habitrpg-highlight-section))))))
-
-(defun habitrpg-highlight-section ()
-  "Highlight current section if it has a type."
-  (let ((section (habitrpg-current-section)))
-    (when (not (eq section habitrpg-highlighted-section))
-      (setq habitrpg-highlighted-section section)
-      (if (not habitrpg-highlight-overlay)
-          (let ((ov (make-overlay 1 1)))
-            (overlay-put ov 'face 'habitrpg-item-highlight)
-            (setq habitrpg-highlight-overlay ov)))
-      (if (and section (habitrpg-section-type section))
-          (progn
-            (move-overlay habitrpg-highlight-overlay
-                          (habitrpg-section-beginning section)
-                          (habitrpg-section-end section)
-                          (current-buffer)))
-        (delete-overlay habitrpg-highlight-overlay)))))
-
-(defun habitrpg-section-context-type (section)
-  (when section
-    (let ((c (or (habitrpg-section-type section)
-                 (and (symbolp (habitrpg-section-title section))
-                      (habitrpg-section-title section)))))
-      (when c
-        (cons c (habitrpg-section-context-type
-                 (habitrpg-section-parent section)))))))
-
-
-(defun habitrpg-string-has-prefix-p (string prefix)
-  (eq (compare-strings string nil (length prefix) prefix nil nil) t))
-
-(defun habitrpg-revert-buffers (dir &optional ignore-modtime)
-  (dolist (buffer (buffer-list))
-    (when (and (buffer-file-name buffer)
-               (not (buffer-modified-p buffer))
-               ;; don't revert indirect buffers, as the parent will be reverted
-               (not (buffer-base-buffer buffer))
-               (habitrpg-string-has-prefix-p (buffer-file-name buffer) dir)
-               (file-readable-p (buffer-file-name buffer))
-               (or ignore-modtime (not (verify-visited-file-modtime buffer))))
-      (with-current-buffer buffer
-        (condition-case err
-            (revert-buffer t t nil)
-          )))))
-
-(defvar habitrpg-refresh-needing-buffers nil)
-(defvar habitrpg-refresh-pending nil)
-
-(defun habitrpg-refresh-wrapper (func)
-  (if habitrpg-refresh-pending
-      (funcall func)
-    (let ((habitrpg-refresh-pending t)
-          (habitrpg-refresh-needing-buffers nil)
-          (status-buffer (habitrpg-find-status-buffer default-directory)))
-      (unwind-protect
-          (funcall func)
-        (when habitrpg-refresh-needing-buffers
-          (mapc 'habitrpg-refresh-buffer habitrpg-refresh-needing-buffers))
-        (when (and status-buffer
-                   (not (memq status-buffer habitrpg-refresh-needing-buffers)))
-          (habitrpg-refresh-buffer status-buffer))
-        (habitrpg-revert-buffers default-directory)))))
-
-(defun habitrpg-need-refresh (&optional buffer)
-  "Mark BUFFER as needing to be refreshed.
-If optional BUFFER is nil, use the current buffer.  If the
-buffer's mode doesn't derive from `habitrpg-mode' do nothing."
-  (with-current-buffer (or buffer (current-buffer))
-    (when (derived-mode-p 'habitrpg-mode)
-      (cl-pushnew (current-buffer)
-                  habitrpg-refresh-needing-buffers :test 'eq))))
-
-(defun habitrpg-refresh ()
-  "Refresh current buffer to match repository state.
-Also revert every unmodified buffer visiting files
-in the corresponding directory."
-  (interactive)
-  (habitrpg-with-refresh
-    (habitrpg-need-refresh)))
-
-(defun habitrpg-refresh-all ()
-  "Refresh all habitrpg buffers.
-"
-  (interactive)
-  (habitrpg-for-all-buffers #'habitrpg-refresh-buffer default-directory))
 
 ;;; Sections
 
@@ -720,6 +495,224 @@ in the corresponding directory."
     (if (not hidden)
         (dolist (c (habitrpg-section-children section))
           (habitrpg-section-set-hidden c (habitrpg-section-hidden c))))))
+
+(defun habitrpg-set-section-info (info &optional section)
+  (setf (habitrpg-section-info (or section habitrpg-top-section)) info))
+
+(defmacro habitrpg-with-section (title type &rest body)
+  "Create a new section of title TITLE and type TYPE and evaluate BODY there.
+
+Sections created inside BODY will become children of the new
+section. BODY must leave point at the end of the created section.
+
+If TYPE is nil, the section won't be highlighted."
+  (declare (indent 2))
+  (let ((s (make-symbol "*section*")))
+    `(let* ((,s (habitrpg-new-section ,title ,type))
+            (habitrpg-top-section ,s))
+       (setf (habitrpg-section-beginning ,s) (point))
+       ,@body
+       (setf (habitrpg-section-end ,s) (point))
+       (setf (habitrpg-section-children ,s)
+             (nreverse (habitrpg-section-children ,s)))
+       ,s)))
+
+(defun habitrpg-set-section-needs-refresh-on-show (flag &optional section)
+  (setf (habitrpg-section-needs-refresh-on-show
+         (or section habitrpg-top-section))
+        flag))
+
+(defun habitrpg-new-section (title type)
+  "Create a new section with title TITLE and type TYPE in current buffer.
+
+If `habitrpg-top-section' buffer local value is nil, the new section
+will be the new top-section; otherwise the new-section will be a
+child of the current top-section.
+
+If TYPE is nil, the section won't be highlighted."
+  (let* ((s (make-habitrpg-section :parent habitrpg-top-section
+                                :title title
+                                :type type
+                                :hidden habitrpg-section-hidden-default))
+         (old (and habitrpg-old-top-section
+                   (habitrpg-find-section (habitrpg-section-path s)
+                                       habitrpg-old-top-section))))
+    (if habitrpg-top-section
+        (push s (habitrpg-section-children habitrpg-top-section))
+      (setq habitrpg-top-section s))
+    (if old
+        (setf (habitrpg-section-hidden s) (habitrpg-section-hidden old)))
+    s))
+
+(defun habitrpg-cancel-section (section)
+  "Delete the section SECTION."
+  (delete-region (habitrpg-section-beginning section)
+                 (habitrpg-section-end section))
+  (let ((parent (habitrpg-section-parent section)))
+    (if parent
+        (setf (habitrpg-section-children parent)
+              (delq section (habitrpg-section-children parent)))
+      (setq habitrpg-top-section nil))))
+
+(defun habitrpg-insert-section (section-title-and-type
+                             buffer-title washer cmd &rest args)
+  "Run CMD and put its result in a new section.
+
+SECTION-TITLE-AND-TYPE is either a string that is the title of the section
+or (TITLE . TYPE) where TITLE is the title of the section and TYPE is its type.
+
+If there is no type, or if type is nil, the section won't be highlighted.
+
+BUFFER-TITLE is the inserted title of the section
+
+WASHER is a function that will be run after CMD.
+The buffer will be narrowed to the inserted text.
+It should add sectioning as needed for Habitrpg interaction.
+
+CMD is an external command that will be run with ARGS as arguments."
+  (let* ((body-beg nil)
+         (section-title (if (consp section-title-and-type)
+                            (car section-title-and-type)
+                          section-title-and-type))
+         (section-type (if (consp section-title-and-type)
+                           (cdr section-title-and-type)
+                         nil))
+         (section
+          (habitrpg-with-section section-title section-type
+            (if buffer-title
+                (insert (propertize buffer-title 'face 'habitrpg-section-title)
+                        "\n"))
+            (setq body-beg (point))
+            (habitrpg-json-insert cmd args)
+            (if (not (eq (char-before) ?\n))
+                (insert "\n"))
+            (if washer
+                (save-restriction
+                  (narrow-to-region body-beg (point))
+                  (goto-char (point-min))
+                  (funcall washer)
+                  (goto-char (point-max)))))))
+    (if (= body-beg (point))
+        (habitrpg-cancel-section section)
+      (insert "\n"))
+    section))
+
+(defun habitrpg-section (section-title-and-type
+                          buffer-title washer &rest args)
+  "Run habit and put its result in a new section.
+See `habitrpg-insert-section' for meaning of the arguments"
+  (apply #'habitrpg-insert-section
+         section-title-and-type
+         buffer-title
+         washer
+	 habitrpg-api-url
+         (append args)))
+
+(defmacro habitrpg-create-buffer-sections (&rest body)
+  "Empty current buffer of text and habitrpg's sections, and then evaluate BODY."
+  (declare (indent 0))
+  `(let ((inhibit-read-only t))
+     (erase-buffer)
+     (let ((habitrpg-old-top-section habitrpg-top-section))
+       (setq habitrpg-top-section nil)
+       ,@body
+       (when (null habitrpg-top-section)
+         (habitrpg-with-section 'top nil
+           (insert "(empty)\n")))
+       (habitrpg-propertize-section habitrpg-top-section)
+       (habitrpg-section-set-hidden habitrpg-top-section
+                                 (habitrpg-section-hidden habitrpg-top-section)))))
+
+(defmacro habitrpg-section-case (head &rest clauses)
+  "Choose among clauses depending on the current section.
+
+Each clause looks like (SECTION-TYPE BODY...).  The current
+section is compared against SECTION-TYPE; the corresponding
+BODY is evaluated and it's value returned.  If no clause
+succeeds return nil.
+
+SECTION-TYPE is a list of symbols identifying a section and it's
+section context; beginning with the most narrow section.  Whether
+a clause succeeds is determined using `habitrpg-section-match'.
+A SECTION-TYPE of t is allowed only in the final clause, and
+matches if no other SECTION-TYPE matches.
+
+While evaluating the selected BODY SECTION is dynamically bound
+to the current section and INFO to information about this
+section (see `habitrpg-section-info').
+
+\(fn (SECTION INFO) (SECTION-TYPE BODY...)...)"
+  (declare (indent 1))
+  (let ((section (car head))
+        (info (cadr head)))
+    `(let* ((,section (habitrpg-current-section))
+            (,info (and ,section (habitrpg-section-info ,section))))
+       (cond ,@(mapcar (lambda (clause)
+                         (let ((condition (car clause)))
+                           `(,(if (eq condition t) t
+                                `(habitrpg-section-match ',condition ,section))
+                             ,@(cdr clause))))
+                       clauses)))))
+
+(defconst habitrpg-section-action-success
+  (make-symbol "habitrpg-section-action-success"))
+
+(defmacro habitrpg-section-action (head &rest clauses)
+  "Choose among action clauses depending on the current section.
+
+Like `habitrpg-section-case' (which see) but if no CLAUSE succeeds
+try additional CLAUSES added with `habitrpg-add-action-clauses'.
+Return the value of BODY of the clause that succeeded.
+
+Each use of `habitrpg-section-action' should use an unique OPNAME.
+
+\(fn (SECTION INFO OPNAME) (SECTION-TYPE BODY...)...)"
+  (declare (indent 1))
+  (let ((opname (make-symbol "*opname*"))
+        (value (make-symbol "*value*"))
+        (disallowed (car (or (assq t clauses)
+                             (assq 'otherwise clauses)))))
+    (when disallowed
+      (error "%s is an invalid section type" disallowed))
+    `(habitrpg-with-refresh
+       (let* ((,opname ,(car (cddr head)))
+              (,value
+               (habitrpg-section-case ,(butlast head)
+                 ,@clauses
+                 ((run-hook-with-args-until-success
+                   ',(intern (format "habitrpg-%s-action-hook" opname))))
+                 (t
+                  (let* ((section (habitrpg-current-section))
+                         (type (and section (habitrpg-section-type section))))
+                    (if type
+                        (error "Can't %s a %s" ,opname
+                               (or (get type 'habitrpg-description) type))
+                      (error "Nothing to %s here" ,opname)))))))
+         (unless (eq ,value habitrpg-section-action-success)
+           ,value)))))
+
+(defmacro habitrpg-add-action-clauses (head &rest clauses)
+  "Add additional clauses to the OPCODE section action.
+
+Add to the section action with the same OPNAME additional
+CLAUSES.  If none of the default clauses defined using
+`habitrpg-section-action' succeed try the clauses added with this
+function (which can be used multiple times with the same OPNAME).
+
+See `habitrpg-section-case' for more information on SECTION, INFO
+and CLAUSES.
+
+\(fn (SECTION INFO OPNAME) (SECTION-TYPE BODY...)...)"
+  (declare (indent 1))
+  `(add-hook ',(intern (format "habitrpg-%s-action-hook" (car (cddr head))))
+             (lambda ()
+               ,(macroexpand
+                 `(habitrpg-section-case ,(butlast head)
+                    ,@(mapcar (lambda (clause)
+                                `(,(car clause)
+                                  (or (progn ,@(cdr clause))
+                                      habitrpg-section-action-success)))
+                              clauses))))))
 
 (defun habitrpg-find-section (path top)
   "Find the section at the path PATH in subsection of section TOP."
@@ -800,8 +793,6 @@ in the corresponding directory."
 	(beginning-of-line)
 	(habitrpg-goto-section (habitrpg-find-section-before (point)))
 	(forward-char)))))
-
-
 
 (defun habitrpg-goto-parent-section ()
   "Go to the parent section."
@@ -975,12 +966,136 @@ Expanded: everything is shown."
 (defun habitrpg-show-level (level all)
   "Show section whose level is less than LEVEL, hide the others.
 If ALL is non nil, do this in all sections, otherwise do it only
-on ancestors and descendants of current section."
+pon ancestors and descendants of current section."
   (habitrpg-with-refresh
     (if all
         (habitrpg-section-show-level habitrpg-top-section 0 level nil)
       (let ((path (reverse (habitrpg-section-lineage (habitrpg-current-section)))))
         (habitrpg-section-show-level (car path) 0 level (cdr path))))))
+
+(defun habitrpg-current-section ()
+  "Return the Habitrpg section at point."
+  (habitrpg-find-section-at (point)))
+
+(defvar habitrpg-highlighted-section t)
+(defvar habitrpg-highlight-overlay nil)
+
+(defun habitrpg-highlight-section ()
+  "Highlight current section if it has a type."
+  (let ((section (habitrpg-current-section)))
+    (when (not (eq section habitrpg-highlighted-section))
+      (setq habitrpg-highlighted-section section)
+      (if (not habitrpg-highlight-overlay)
+          (let ((ov (make-overlay 1 1)))
+            (overlay-put ov 'face 'habitrpg-item-highlight)
+            (setq habitrpg-highlight-overlay ov)))
+      (if (and section (habitrpg-section-type section))
+          (progn
+            (move-overlay habitrpg-highlight-overlay
+                          (habitrpg-section-beginning section)
+                          (habitrpg-section-end section)
+                          (current-buffer)))
+        (delete-overlay habitrpg-highlight-overlay)))))
+
+(defun habitrpg-refresh-buffer (&optional buffer)
+  (with-current-buffer (or buffer (current-buffer))
+    (let* ((old-line (line-number-at-pos))
+           (old-point (point))
+           (old-section (habitrpg-current-section))
+           (old-path (and old-section
+                          (habitrpg-section-path (habitrpg-current-section)))))
+      (beginning-of-line)
+      (let ((section-line (and old-section
+                               (count-lines
+                                (habitrpg-section-beginning old-section)
+                                (point))))
+            (line-char (- old-point (point))))
+        (if habitrpg-refresh-function
+            (apply habitrpg-refresh-function
+                   habitrpg-refresh-args))
+        (let ((s (and old-path (habitrpg-find-section old-path habitrpg-top-section))))
+          (cond (s
+                 (goto-char (habitrpg-section-beginning s))
+                 (forward-line section-line)
+                 (forward-char line-char))
+                (t
+                 (habitrpg-goto-line old-line)))
+          (dolist (w (get-buffer-window-list (current-buffer)))
+            (set-window-point w (point)))
+          (habitrpg-highlight-section))))))
+
+(defun habitrpg-section-context-type (section)
+  (when section
+    (let ((c (or (habitrpg-section-type section)
+                 (and (symbolp (habitrpg-section-title section))
+                      (habitrpg-section-title section)))))
+      (when c
+        (cons c (habitrpg-section-context-type
+                 (habitrpg-section-parent section)))))))
+
+(defun habitrpg-string-has-prefix-p (string prefix)
+  (eq (compare-strings string nil (length prefix) prefix nil nil) t))
+
+(defun habitrpg-revert-buffers (dir &optional ignore-modtime)
+  (dolist (buffer (buffer-list))
+    (when (and (buffer-file-name buffer)
+               (not (buffer-modified-p buffer))
+               ;; don't revert indirect buffers, as the parent will be reverted
+               (not (buffer-base-buffer buffer))
+               (habitrpg-string-has-prefix-p (buffer-file-name buffer) dir)
+               (file-readable-p (buffer-file-name buffer))
+               (or ignore-modtime (not (verify-visited-file-modtime buffer))))
+      (with-current-buffer buffer
+        (condition-case err
+            (revert-buffer t t nil)
+          )))))
+
+(defvar habitrpg-refresh-needing-buffers nil)
+(defvar habitrpg-refresh-pending nil)
+
+(defun habitrpg-refresh-wrapper (func)
+  (if habitrpg-refresh-pending
+      (funcall func)
+    (let ((habitrpg-refresh-pending t)
+          (habitrpg-refresh-needing-buffers nil)
+          (status-buffer (habitrpg-find-status-buffer default-directory)))
+      (unwind-protect
+          (funcall func)
+        (when habitrpg-refresh-needing-buffers
+          (mapc 'habitrpg-refresh-buffer habitrpg-refresh-needing-buffers))
+        (when (and status-buffer
+                   (not (memq status-buffer habitrpg-refresh-needing-buffers)))
+          (habitrpg-refresh-buffer status-buffer))
+        (habitrpg-revert-buffers default-directory)))))
+
+(defun habitrpg-need-refresh (&optional buffer)
+  "Mark BUFFER as needing to be refreshed.
+If optional BUFFER is nil, use the current buffer.  If the
+buffer's mode doesn't derive from `habitrpg-mode' do nothing."
+  (with-current-buffer (or buffer (current-buffer))
+    (when (derived-mode-p 'habitrpg-mode)
+      (cl-pushnew (current-buffer)
+                  habitrpg-refresh-needing-buffers :test 'eq))))
+
+(defun habitrpg-refresh ()
+  "Refresh current buffer to match repository state.
+Also revert every unmodified buffer visiting files
+in the corresponding directory."
+  (interactive)
+  (habitrpg-with-refresh
+    (habitrpg-need-refresh)))
+
+(defun habitrpg-refresh-all ()
+  "Refresh all habitrpg buffers.
+"
+  (interactive)
+  (habitrpg-for-all-buffers #'habitrpg-refresh-buffer default-directory))
+
+;;; Macros
+
+(defmacro habitrpg-with-refresh (&rest body)
+  (declare (indent 0))
+  `(habitrpg-refresh-wrapper (lambda () ,@body)))
 
 (defmacro habitrpg-define-level-shower-1 (level all)
   "Define an interactive function to show function of level LEVEL.
@@ -1033,7 +1148,6 @@ TITLE is the displayed title of the section."
        (put ',after 'definition-name ',sym)
        (put ',fun 'definition-name ',sym))))
 
-
 (habitrpg-define-inserter tasks ()
   (habitrpg-section 'todo
  		    "Todos:" 'habitrpg-wash-tasks
@@ -1066,11 +1180,9 @@ TITLE is the displayed title of the section."
 (habitrpg-define-inserter habits ()
   (habitrpg-section 'habit
  		    "Habits:" 'habitrpg-wash-tasks))
-
 (habitrpg-define-inserter dailys ()
   (habitrpg-section 'daily
  		    "Dailys:" 'habitrpg-wash-tasks))
-
 (habitrpg-define-inserter rewards ()
   (habitrpg-section 'reward
  		    "Rewards:" 'habitrpg-wash-tasks))
@@ -1122,7 +1234,15 @@ TITLE is the displayed title of the section."
     (insert (propertize (concat task-id "\n") 'face 'font-lock-keyword-face))
     (goto-char (point-max))))
 
+(defun habitrpg-wash-sequence (func)
+  "Run FUNC until end of buffer is reached.
+FUNC should leave point at the end of the modified region"
+  (while (and (not (eobp))
+              (funcall func))))
 
+;; 
+;; Colors determined by `value' defined by habitrpg.com
+;; 
 (defun habitrpg-x-color-luminance (color)
   "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\"). Taken from `rainbow'.
 Return a value between 0 and 1."
@@ -1170,9 +1290,6 @@ Return a value between 0 and 1."
         (b (* (string-to-number (match-string-no-properties 3 color)) 255.0)))
     (format "#%02X%02X%02X" r g b)))
 
-
-
-
 ;; (let ((status-text (cl-case status ; task title
 ;;    ((old)
 ;;     (format "Old   %s" task-name))
@@ -1183,232 +1300,6 @@ Return a value between 0 and 1."
 ;;    (t
 ;;     (format "?          %s" task-name)))))
 ;; (insert (make-string magit-indentation-level ?\t) status-text "\n")))
-
-
-(defun habitrpg-wash-sequence (func)
-  "Run FUNC until end of buffer is reached.
-FUNC should leave point at the end of the modified region"
-  (while (and (not (eobp))
-              (funcall func))))
-
-(defun habitrpg-set-section-info (info &optional section)
-  (setf (habitrpg-section-info (or section habitrpg-top-section)) info))
-
-(defmacro habitrpg-with-section (title type &rest body)
-  "Create a new section of title TITLE and type TYPE and evaluate BODY there.
-
-Sections created inside BODY will become children of the new
-section. BODY must leave point at the end of the created section.
-
-If TYPE is nil, the section won't be highlighted."
-  (declare (indent 2))
-  (let ((s (make-symbol "*section*")))
-    `(let* ((,s (habitrpg-new-section ,title ,type))
-            (habitrpg-top-section ,s))
-       (setf (habitrpg-section-beginning ,s) (point))
-       ,@body
-       (setf (habitrpg-section-end ,s) (point))
-       (setf (habitrpg-section-children ,s)
-             (nreverse (habitrpg-section-children ,s)))
-       ,s)))
-
-(defun habitrpg-set-section-needs-refresh-on-show (flag &optional section)
-  (setf (habitrpg-section-needs-refresh-on-show
-         (or section habitrpg-top-section))
-        flag))
-
-
-(defun habitrpg-new-section (title type)
-  "Create a new section with title TITLE and type TYPE in current buffer.
-
-If `habitrpg-top-section' buffer local value is nil, the new section
-will be the new top-section; otherwise the new-section will be a
-child of the current top-section.
-
-If TYPE is nil, the section won't be highlighted."
-  (let* ((s (make-habitrpg-section :parent habitrpg-top-section
-                                :title title
-                                :type type
-                                :hidden habitrpg-section-hidden-default))
-         (old (and habitrpg-old-top-section
-                   (habitrpg-find-section (habitrpg-section-path s)
-                                       habitrpg-old-top-section))))
-    (if habitrpg-top-section
-        (push s (habitrpg-section-children habitrpg-top-section))
-      (setq habitrpg-top-section s))
-    (if old
-        (setf (habitrpg-section-hidden s) (habitrpg-section-hidden old)))
-    s))
-
-(defun habitrpg-cancel-section (section)
-  "Delete the section SECTION."
-  (delete-region (habitrpg-section-beginning section)
-                 (habitrpg-section-end section))
-  (let ((parent (habitrpg-section-parent section)))
-    (if parent
-        (setf (habitrpg-section-children parent)
-              (delq section (habitrpg-section-children parent)))
-      (setq habitrpg-top-section nil))))
-
-(defun habitrpg-insert-section (section-title-and-type
-                             buffer-title washer cmd &rest args)
-  "Run CMD and put its result in a new section.
-
-SECTION-TITLE-AND-TYPE is either a string that is the title of the section
-or (TITLE . TYPE) where TITLE is the title of the section and TYPE is its type.
-
-If there is no type, or if type is nil, the section won't be highlighted.
-
-BUFFER-TITLE is the inserted title of the section
-
-WASHER is a function that will be run after CMD.
-The buffer will be narrowed to the inserted text.
-It should add sectioning as needed for Habitrpg interaction.
-
-CMD is an external command that will be run with ARGS as arguments."
-  (let* ((body-beg nil)
-         (section-title (if (consp section-title-and-type)
-                            (car section-title-and-type)
-                          section-title-and-type))
-         (section-type (if (consp section-title-and-type)
-                           (cdr section-title-and-type)
-                         nil))
-         (section
-          (habitrpg-with-section section-title section-type
-            (if buffer-title
-                (insert (propertize buffer-title 'face 'habitrpg-section-title)
-                        "\n"))
-            (setq body-beg (point))
-            (habitrpg-cmd-insert cmd args)
-            (if (not (eq (char-before) ?\n))
-                (insert "\n"))
-            (if washer
-                (save-restriction
-                  (narrow-to-region body-beg (point))
-                  (goto-char (point-min))
-                  (funcall washer)
-                  (goto-char (point-max)))))))
-    (if (= body-beg (point))
-        (habitrpg-cancel-section section)
-      (insert "\n"))
-    section))
-
-(defun habitrpg-section (section-title-and-type
-                          buffer-title washer &rest args)
-  "Run habit and put its result in a new section.
-See `habitrpg-insert-section' for meaning of the arguments"
-  (apply #'habitrpg-insert-section
-         section-title-and-type
-         buffer-title
-         washer
-	 habitrpg-api-url
-         (append args)))
-
-(defmacro habitrpg-create-buffer-sections (&rest body)
-  "Empty current buffer of text and habitrpg's sections, and then evaluate BODY."
-  (declare (indent 0))
-  `(let ((inhibit-read-only t))
-     (erase-buffer)
-     (let ((habitrpg-old-top-section habitrpg-top-section))
-       (setq habitrpg-top-section nil)
-       ,@body
-       (when (null habitrpg-top-section)
-         (habitrpg-with-section 'top nil
-           (insert "(empty)\n")))
-       (habitrpg-propertize-section habitrpg-top-section)
-       (habitrpg-section-set-hidden habitrpg-top-section
-                                 (habitrpg-section-hidden habitrpg-top-section)))))
-
-(defmacro habitrpg-section-case (head &rest clauses)
-  "Choose among clauses depending on the current section.
-
-Each clause looks like (SECTION-TYPE BODY...).  The current
-section is compared against SECTION-TYPE; the corresponding
-BODY is evaluated and it's value returned.  If no clause
-succeeds return nil.
-
-SECTION-TYPE is a list of symbols identifying a section and it's
-section context; beginning with the most narrow section.  Whether
-a clause succeeds is determined using `habitrpg-section-match'.
-A SECTION-TYPE of t is allowed only in the final clause, and
-matches if no other SECTION-TYPE matches.
-
-While evaluating the selected BODY SECTION is dynamically bound
-to the current section and INFO to information about this
-section (see `habitrpg-section-info').
-
-\(fn (SECTION INFO) (SECTION-TYPE BODY...)...)"
-  (declare (indent 1))
-  (let ((section (car head))
-        (info (cadr head)))
-    `(let* ((,section (habitrpg-current-section))
-            (,info (and ,section (habitrpg-section-info ,section))))
-       (cond ,@(mapcar (lambda (clause)
-                         (let ((condition (car clause)))
-                           `(,(if (eq condition t) t
-                                `(habitrpg-section-match ',condition ,section))
-                             ,@(cdr clause))))
-                       clauses)))))
-
-(defconst habitrpg-section-action-success
-  (make-symbol "habitrpg-section-action-success"))
-
-(defmacro habitrpg-section-action (head &rest clauses)
-  "Choose among action clauses depending on the current section.
-
-Like `habitrpg-section-case' (which see) but if no CLAUSE succeeds
-try additional CLAUSES added with `habitrpg-add-action-clauses'.
-Return the value of BODY of the clause that succeeded.
-
-Each use of `habitrpg-section-action' should use an unique OPNAME.
-
-\(fn (SECTION INFO OPNAME) (SECTION-TYPE BODY...)...)"
-  (declare (indent 1))
-  (let ((opname (make-symbol "*opname*"))
-        (value (make-symbol "*value*"))
-        (disallowed (car (or (assq t clauses)
-                             (assq 'otherwise clauses)))))
-    (when disallowed
-      (error "%s is an invalid section type" disallowed))
-    `(habitrpg-with-refresh
-       (let* ((,opname ,(car (cddr head)))
-              (,value
-               (habitrpg-section-case ,(butlast head)
-                 ,@clauses
-                 ((run-hook-with-args-until-success
-                   ',(intern (format "habitrpg-%s-action-hook" opname))))
-                 (t
-                  (let* ((section (habitrpg-current-section))
-                         (type (and section (habitrpg-section-type section))))
-                    (if type
-                        (error "Can't %s a %s" ,opname
-                               (or (get type 'habitrpg-description) type))
-                      (error "Nothing to %s here" ,opname)))))))
-         (unless (eq ,value habitrpg-section-action-success)
-           ,value)))))
-
-(defmacro habitrpg-add-action-clauses (head &rest clauses)
-  "Add additional clauses to the OPCODE section action.
-
-Add to the section action with the same OPNAME additional
-CLAUSES.  If none of the default clauses defined using
-`habitrpg-section-action' succeed try the clauses added with this
-function (which can be used multiple times with the same OPNAME).
-
-See `habitrpg-section-case' for more information on SECTION, INFO
-and CLAUSES.
-
-\(fn (SECTION INFO OPNAME) (SECTION-TYPE BODY...)...)"
-  (declare (indent 1))
-  `(add-hook ',(intern (format "habitrpg-%s-action-hook" (car (cddr head))))
-             (lambda ()
-               ,(macroexpand
-                 `(habitrpg-section-case ,(butlast head)
-                    ,@(mapcar (lambda (clause)
-                                `(,(car clause)
-                                  (or (progn ,@(cdr clause))
-                                      habitrpg-section-action-success)))
-                              clauses))))))
 
 (defun habitrpg-goto-line (line)
   "Like `goto-line' but doesn't set the mark."
@@ -1423,6 +1314,9 @@ With a prefix argument, kill the buffer instead."
   (interactive "P")
   (quit-window kill-buffer (selected-window)))
 
+;; 
+;; API interface
+;; 
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline add TASK if it isn't already
@@ -1488,13 +1382,6 @@ there. If its state is DONE, update."
     (habitrpg-refresh-status)
     (goto-char p))))
 
-;; (defun habitrpg-done ()
-;;   "Update TASK on habitrpg."
-;;   (let ((task (nth 4 (org-heading-components))))
-;;     (if (string= (nth 2 (org-heading-components)) "DONE")
-;; 	(let ((id (habitrpg-get-id task)))
-;; 	  (habitrpg-upvote id)))))
-
 (defvar hrpg-id nil "ID for a habitrpg task")
 (defvar hrpg-task nil "habitrpg task")
 
@@ -1555,7 +1442,6 @@ there. If its state is DONE, update."
 						 " hp: " (number-to-string (truncate hp))
 						 " lvl: " (number-to-string (truncate lvl)))))))))))
 
-
 (defun habitrpg-get-id-at-point ()
   (let ((id (cdr (car (habitrpg-section-info (habitrpg-current-section))))))
     id))
@@ -1597,7 +1483,6 @@ there. If its state is DONE, update."
     (habitrpg-refresh-status)
     (goto-char p)))
 
-
 (defun habitrpg-delete-at-point ()
   (save-excursion
     (end-of-visible-line)
@@ -1626,10 +1511,6 @@ there. If its state is DONE, update."
 	  (if (< beg end)
 	      (put-text-property beg end 'invisible t)))))))
 
-
-			   
-
-	    
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
