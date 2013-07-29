@@ -207,7 +207,7 @@ Many Habitrpg faces inherit from this one by default."
      :box t
      :background "IndianRed1"
      :foreground "IndianRed4"))
-  "Face for bad bisect refs."
+  "Face for exp."
   :group 'habitrpg-faces)
 
 (defface habitrpg-lvl
@@ -219,7 +219,7 @@ Many Habitrpg faces inherit from this one by default."
      :box t
      :background "Grey11"
      :foreground "DarkSeaGreen2"))
-  "Face for remote branch head labels shown in log buffer."
+  "Face for level."
   :group 'habitrpg-faces)
 
 (defface habitrpg-gold
@@ -231,7 +231,7 @@ Many Habitrpg faces inherit from this one by default."
      :box t
      :background "LemonChiffon1"
      :foreground "goldenrod4"))
-  "Face for tag labels shown in log buffer."
+  "Face for gold."
   :group 'habitrpg-faces)
 
 (defface habitrpg-hp
@@ -243,7 +243,7 @@ Many Habitrpg faces inherit from this one by default."
      :box t
      :background "IndianRed1"
      :foreground "IndianRed4"))
-  "Face for Stacked Git patches."
+  "Face for hp."
   :group 'habitrpg-faces)
 
 (defface habitrpg-maxhp
@@ -1078,9 +1078,7 @@ buffer's mode doesn't derive from `habitrpg-mode' do nothing."
                   habitrpg-refresh-needing-buffers :test 'eq))))
 
 (defun habitrpg-refresh ()
-  "Refresh current buffer to match repository state.
-Also revert every unmodified buffer visiting files
-in the corresponding directory."
+  "Refresh current buffer."
   (interactive)
   (habitrpg-with-refresh
     (habitrpg-need-refresh)))
@@ -1201,8 +1199,6 @@ TITLE is the displayed title of the section."
 	    (parent section-title))
 	(if (string= type parent)
 	    (let ((habitrpg-section-hidden-default t))
-		;; (if (char-before)
-		;;     (insert "\n"))
 	      (habitrpg-with-section task-name 'tasks
 		(delete-region (point) (+ (line-end-position) 1))
 		(let ((p (point))	;task info
