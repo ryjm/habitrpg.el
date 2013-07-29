@@ -9,7 +9,7 @@ Tag (in org-mode) your habits and dailys with `hrpghabit`, `hrpgdaily`, and `hrp
 
 Easy Install
 -----------
-Put this in an empty buffer (`*scratch*`for example), move cursor to bottom, and hit C-j.
+Put this in an empty buffer (`*scratch*`for example), move cursor to bottom, and hit C-j. (You might have some trouble if you are using Windows. Try installing [GnuTLS](http://www.gnutls.org/download.html) and make sure you have [git](http://git-scm.com/download/win) as well. If that doesn't work you may have to resort to the manual installation.)
 
 ```lisp
 ;; C-j at end of this block to install habitrpg.el
@@ -30,7 +30,8 @@ Clone this repo: `git clone https://github.com/ryjm/habitrpg.el`
 
 Add to your .emacs (if you used the install script the path will be in .emacs.d):
 
-    (add-to-list 'load-path "path/to/repo/habitrpg.el") 
+    (add-to-list 'load-path "path/to/repo/habitrpg.el")
+	(require 'habitrpg)
     (setq habitrpg-api-user "ID-HERE")
     (setq habitrpg-api-token "TOKEN-HERE")
 
