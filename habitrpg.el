@@ -170,7 +170,7 @@ Many Habitrpg faces inherit from this one by default."
 Many Habitrpg faces inherit from this one by default."
   :group 'habitrpg-faces)
 
-(defface habitrpg-log-graph
+(defface habitrpg-day
   '((((class color) (background light))
      :foreground "grey11")
     (((class color) (background dark))
@@ -356,8 +356,9 @@ The function is given one argument, the status buffer."
 			  ;; auth info
 			  (auth (assoc-default 'auth data))
 			  (local (assoc-default 'local auth))
+			  (timestamps (assoc-default 'timestamps auth))
 			  (user (assoc-default 'username local))
-			  (born (assoc-default 'created local))
+			  (born (assoc-default 'created timestamps))
 			  (uid (assoc-default 'id data))
 			  ;; flags - for inn
 			  (flags (assoc-default 'flags data))
@@ -365,23 +366,49 @@ The function is given one argument, the status buffer."
 			  ;; pref
 			  (pref (assoc-default 'preferences data))
 			  (day (assoc-default 'dayStart pref)))
-		     (habitrpg-insert-status-line  (propertize user 'face 'habitrpg-user) "")
-		     (habitrpg-insert-status-line (concat "Experience: " 
-							  (propertize
-							   (number-to-string (floor exp))
-							   'face 'habitrpg-exp))
-						  (propertize (number-to-string nextlvl) 'face 'habitrpg-nextlvl))
-		     (habitrpg-insert-status-line (concat "Gold: " 
-							  (propertize (number-to-string (floor gp))
-								      'face 'habitrpg-gold)) "")
-		     (habitrpg-insert-status-line (concat "Health: " 
-							  (propertize (number-to-string (floor hp)) 
-								      'face 'habitrpg-hp))
-						  (propertize (number-to-string maxhp) 'face 'habitrpg-maxhp))
-		     (habitrpg-insert-status-line (concat "Level: " 
-							  (propertize 
-							   (number-to-string (floor lvl))
-							   'face 'habitrpg-lvl)) "\n")))))
+		     (habitrpg-with-section nil 'stats
+		       (habitrpg-insert-status-line (propertize user 'face 'habitrpg-user)
+						    (concat (if (eq rest t)
+								(propertize "Resting" 'face 'font-lock-warning-face)
+							      "") 
+							    (propertize 
+							     (format " New day starts at %s:00" 
+								     (if (eq (string-width day) 1)
+									 (concat "0" day)
+								       day))
+							     'face 'habitrpg-day)))
+		       
+		       (habitrpg-insert-status-line (concat "Experience: " 
+							    (propertize
+							     (number-to-string (floor exp))
+							     'face 'habitrpg-exp))
+						    (propertize (number-to-string nextlvl) 'face 'habitrpg-nextlvl))
+		       (habitrpg-insert-status-line (concat "Gold: " 
+							    (propertize (number-to-string (floor gp))
+									'face 'habitrpg-gold)) "")
+		       (habitrpg-insert-status-line (concat "Health: " 
+							    (propertize (number-to-string (floor hp)) 
+									'face 'habitrpg-hp))
+						    (propertize (number-to-string maxhp) 'face 'habitrpg-maxhp))
+		       (habitrpg-insert-status-line (concat "Level: " 
+							    (propertize 
+							     (number-to-string (floor lvl))
+							     'face 'habitrpg-lvl)) "\n")
+		     (let ((habitrpg-section-hidden-default t))
+		       (habitrpg-with-section uid 'auth
+			 (insert (propertize "[UID]\n" 'face 'font-lock-comment-face))
+			 (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))
+		       (habitrpg-with-section born 'born
+			 (insert (propertize "[Age]\n" 'face 'font-lock-comment-face))
+			 (let* ((borndate (format-time-string "%Y-%m-%d %T UTC" (seconds-to-time (/ born 1000))))
+				(age (- (time-to-days (current-time))(time-to-days (date-to-time borndate)))))
+			 (insert (propertize (concat
+					       "Born on: " borndate "\n")
+					     'face 'font-lock-keyword-face))
+			 (insert (propertize (concat
+					       (number-to-string age) " days old" "\n")
+					     'face 'font-lock-keyword-face))))))))))
+
       (insert "\n")
       (habitrpg-insert-tasks)
       (habitrpg-insert-habits)
