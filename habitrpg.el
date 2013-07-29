@@ -1195,20 +1195,36 @@ TITLE is the displayed title of the section."
 					 (potions (assoc-default 'hatchingPotions items))
 					 (pets (assoc-default 'pets items))
 					 (names (dolist (task-id tasks)
-						  (unless (string= (assoc-default 'completed task-id) "t")
-						    (insert (concat "type: "
-								    (assoc-default 'type task-id) " " 
-								    (assoc-default 'text task-id) " " 
-								    "id: "
-								    (symbol-name (car task-id)) " "))
-						    (let* ((value (assoc-default 'value task-id)))
-						      (if value
-							  (insert "value: "
-								  (if (numberp value)
-								      (number-to-string value)
-								    value)
-								  "\n")
-							(insert "value: 0\n"))))))
+						  (if (and (string= (assoc-default 'completed task-id) "t") 
+							   (not (string= (assoc-default 'type task-id) "todo")))
+						      (progn   
+							(insert (concat "type: " 
+									(assoc-default 'type task-id) " " "COMPLETED "
+									(assoc-default 'text task-id) " " 
+									"id: "
+									(symbol-name (car task-id)) " "))
+							(let* ((value (assoc-default 'value task-id)))
+							  (if value
+							      (insert "value: "
+								      (if (numberp value)
+									  (number-to-string value)
+									value)
+								      "\n")
+							    (insert "value: 0\n"))))
+						    (unless (string= (assoc-default 'completed task-id) "t")
+						      (insert (concat "type: "
+								      (assoc-default 'type task-id) " " 
+								      (assoc-default 'text task-id) " " 
+								      "id: "
+								      (symbol-name (car task-id)) " "))
+						      (let* ((value (assoc-default 'value task-id)))
+							(if value
+							    (insert "value: "
+								    (if (numberp value)
+									(number-to-string value)
+								      value)
+								    "\n")
+							  (insert "value: 0\n")))))))
 					 (eggnames (dotimes (i (length eggs))
 						     (let ((egg (aref eggs i)))
 						       (insert (concat "type: egg " (assoc-default 'name egg) " Egg"
@@ -1259,18 +1275,27 @@ TITLE is the displayed title of the section."
 	      (habitrpg-with-section task-name 'tasks
 		(delete-region (point) (+ (line-end-position) 1))
 		(let ((p (point))	;task info
-		      (color (habitrpg-task-color value)))
+		      (color (habitrpg-task-color value))
+		      (done nil))
 		  (save-restriction
 		    (narrow-to-region p (point))
 		    (goto-char p)
 		    (insert
+		     (if (string-match "COMPLETED \\(.*\\)" task-name)
+			 (progn
+			   (setq task-name (match-string 1 task-name))
+			   (setq done t) "")
+		       (setq done nil) "")
 		     (make-string habitrpg-indentation-level ?\t)
 		     (propertize
 		      task-name 
 		      'face `((:box t)
 			      (:foreground ,(if (> 0.5 (habitrpg-x-color-luminance color))
                                "white" "black")) 
-			      (:background ,color))) " "
+			      (:background ,color)
+			      ,(if done
+				  '(:strike-through t)
+				'(:strike-through nil)))) " "
 		     (if (string= section-title 'reward)
 			 (propertize value 'face 'habitrpg-gold)
 		       "") "\n")
