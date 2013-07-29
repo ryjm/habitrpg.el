@@ -1324,34 +1324,37 @@ there. If its state is DONE, update."
   (interactive)
   (save-window-excursion
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
-    (let* ((task (nth 4 (org-heading-components)))
-	  (id (habitrpg-get-id task))
-	  type)
-      (if (not (string=(nth 2 (org-heading-components)) "DONE"))
-	  (progn
-	    (cond
-	     ((member "hrpghabit" (org-get-tags-at)) 
-	      (setq type "habit"))
-	     ((member "hrpgdaily" (org-get-tags-at))
-	      (setq type "daily"))
-	     ((member "hrpgreward" (org-get-tags-at))
-	      (setq type "reward"))
-	     (t (setq type "todo")))
-	    (let* ((beg 
-		    (progn
-		      (org-back-to-heading)
-		      (forward-line 1)
-		      (point)))
-		   (end
-		    (progn
-		      (org-end-of-subtree)
-		      (point)))
-		   (text 
-		    (progn
-		      (buffer-substring beg end))))
-	      (if (string= id "nil")
-		  (habitrpg-create type task text))))
-	(habitrpg-upvote id)))))
+    (lexical-let* ((task (nth 4 (org-heading-components)))
+		  type)
+      (habitrpg-get-id task
+		       (lambda (id)
+			 (if (not (string=(nth 2 (org-heading-components)) "DONE"))
+			     (progn
+			       (cond
+				((member "hrpghabit" (org-get-tags-at))
+				 (setq type "habit"))
+				((member "hrpgdaily" (org-get-tags-at))
+				 (setq type "daily"))
+				((member "hrpgreward" (org-get-tags-at))
+				 (setq type "reward"))
+				(t (setq type "todo")))
+			       (let* ((beg
+				       (progn
+					 (org-back-to-heading)
+					 (forward-line 1)
+					 (point)))
+				      (end
+				       (progn
+					 (org-end-of-subtree)
+					 (point)))
+				      (text
+				       (progn
+					 (buffer-substring beg end))))
+				 (if (string= id "nil")
+				     (habitrpg-create type task text))))
+			   (progn
+			     (habitrpg-upvote id)
+			     (message "Task \"%s\" completed!" task))))))))
 
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
@@ -1385,8 +1388,8 @@ there. If its state is DONE, update."
 (defvar hrpg-id nil "ID for a habitrpg task")
 (defvar hrpg-task nil "habitrpg task")
 
-(defun habitrpg-get-id (task)
-  (lexical-let ((t task))
+(defun habitrpg-get-id (task func)
+  (lexical-let ((t task) (func func))
   (deferred:$
     (request-deferred
      (concat habitrpg-api-url "/user")
@@ -1413,12 +1416,13 @@ there. If its state is DONE, update."
 						       'text task-id)
 						      t))
 					(list (assoc-default 'text task-id) (car task-id))))) tasks)))
-		   (setq hrpg-id (symbol-name (car (assoc-default t names))))
-		   (message "Got id %S" hrpg-id))))
-     (deferred:nextc it
-       (lambda () 
-	 hrpg-id))))
-  hrpg-id)
+		   (setq id (symbol-name (car (assoc-default t names))))
+		   (message "Got id %S" id)
+		   (funcall func id)))))))
+
+
+
+
 
 (defun habitrpg-upvote (id &optional task type text direction)
   (request
@@ -1509,16 +1513,21 @@ there. If its state is DONE, update."
 		     (point)))
 	      (end (habitrpg-section-end section)))
 	  (if (< beg end)
-	      (put-text-property beg end 'invisible t)))))))
+	      (put-text-property beg end 'invisible t))))
+      (habitrpg-set-section-needs-refresh-on-show t (habitrpg-section-parent section)))))
+
+
 
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
-  (let* ((task (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal))))
+  (lexical-let ((task (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal))))
        (if task
-	   (let ((id (habitrpg-get-id task)))
-	     (setq hrpg-timer (run-at-time nil hrpg-repeat-interval
-					   'habitrpg-upvote id task "habit" ""))))))
+	   (habitrpg-get-id task 
+			    (lambda (id)
+			      (setq hrpg-timer (run-at-time nil hrpg-repeat-interval
+							    'habitrpg-upvote id task "habit" ""))
+			      (message "Clocked into habit \"%s\"" task))))))
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
