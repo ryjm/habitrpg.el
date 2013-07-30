@@ -1,4 +1,4 @@
-;;; habitrpg.el --- org-mode interface to habitrpg using pyhabit
+;;; habitrpg.el --- org-mode interface to habitrpg
 
 ;; Copyright (C) 2013
 
@@ -374,10 +374,12 @@ The function is given one argument, the status buffer."
 							      "") 
 							    (propertize 
 							     (format " New day starts at %s:00" 
-								     (if (eq (string-width day) 1)
-									 (concat "0" day)
-								       day))
-							     'face 'habitrpg-day)))
+								     (if (stringp day)
+									 (if (eq (string-width day) 1)
+									     (concat "0" day)
+									   day)
+								       (number-to-string day)))
+								     'face 'habitrpg-day)))
 		       
 		       (habitrpg-insert-status-line (concat "Experience: " 
 							    (propertize
