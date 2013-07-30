@@ -357,8 +357,11 @@ The function is given one argument, the status buffer."
 			  ;; auth info
 			  (auth (assoc-default 'auth data))
 			  (local (assoc-default 'local auth))
+			  (facebook (assoc-default 'facebook auth))
 			  (timestamps (assoc-default 'timestamps auth))
-			  (user (assoc-default 'username local))
+			  (user (cond
+				 ((assoc-default 'username local))
+				 ((assoc-default 'username facebook))))
 			  (born (assoc-default 'created timestamps))
 			  (uid (assoc-default 'id data))
 			  ;; flags - for inn
