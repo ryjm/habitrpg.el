@@ -284,6 +284,7 @@ Many Habitrpg faces inherit from this one by default."
     (define-key map (kbd "M-n") 'habitrpg-goto-next-sibling-section)
     (define-key map (kbd "M-p") 'habitrpg-goto-previous-sibling-section)
     (define-key map (kbd "TAB") 'habitrpg-toggle-section)
+    (define-key map (kbd "RET") 'habitrpg-search-task-name)
     (define-key map (kbd "<backtab>") 'habitrpg-expand-collapse-section)
     (define-key map (kbd "C-c C-c") 'habitrpg-upvote-at-point)
     (define-key map (kbd "C-c C-d") 'habitrpg-downvote-at-point)
@@ -1610,6 +1611,11 @@ Continuously upvote habits associated with the currently clocking task, based on
 (defun habitrpg-clock-out ()
   "Stop upvoting."
   (cancel-function-timers 'habitrpg-upvote))
+
+(defun habitrpg-search-task-name ()
+  "Try to find task in org-mode."
+  (interactive)
+  (org-occur-in-agenda-files (habitrpg-section-title (habitrpg-current-section))))
 
 (defun habitrpg-change-server ()
   (interactive)
