@@ -400,15 +400,17 @@ The function is given one argument, the status buffer."
 			 (insert (propertize "[UID]\n" 'face 'font-lock-comment-face))
 			 (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))
 		       (habitrpg-with-section born 'born
-			 (insert (propertize "[Age]\n" 'face 'font-lock-comment-face))
+
 			 (let* ((borndate (format-time-string "%Y-%m-%d %T UTC" (seconds-to-time (/ born 1000))))
 				(age (- (time-to-days (current-time))(time-to-days (date-to-time borndate)))))
-			 (insert (propertize (concat
-					       "Born on: " borndate "\n")
-					     'face 'font-lock-keyword-face))
-			 (insert (propertize (concat
-					       (number-to-string age) " days old" "\n")
-					     'face 'font-lock-keyword-face))))))))))
+			   (insert (propertize "[Age] - " 'face 'font-lock-comment-face)
+				   (propertize (concat
+						(number-to-string age) " days old" "\n")
+					       'face 'font-lock-keyword-face))
+			   (insert (propertize (concat
+						"Born on: " borndate "\n")
+					       'face 'font-lock-keyword-face))))))))))
+
 
       (insert "\n")
       (habitrpg-insert-tasks)
@@ -1436,7 +1438,7 @@ there. If its state is DONE, update."
 				     (habitrpg-create type task text))))
 			   (progn
 			     (habitrpg-upvote id)
-			     (message "Task \"%s\" completed!" task))))))))
+			     (message "Task \"%s\" completed!" task)))))))))
 
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
@@ -1499,7 +1501,7 @@ there. If its state is DONE, update."
 						      t))
 					(list (assoc-default 'text task-id) (car task-id))))) tasks)))
 		   (setq id (symbol-name (car (assoc-default t names))))
-		   (message "Got id %S" id)
+		   (message "Got id %S for task %S" id t)
 		   (funcall func id)))))))
 
 
