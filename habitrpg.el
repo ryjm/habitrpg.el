@@ -1547,12 +1547,16 @@ there. If its state is DONE, update."
 	    (progn 
 	      (habitrpg-refresh-status)
 	      (goto-char p))
-	  (let ((beg (save-excursion
-		       (goto-char (habitrpg-section-beginning section))
-		       (point)))
-		(end (habitrpg-section-end section)))
-	    (if (< beg end)
-		(put-text-property beg end 'invisible t)))))
+	  (let ((inhibit-read-only t))
+	    (let ((beg (save-excursion
+			 (beginning-of-line)
+			 (forward-char)
+			 (point)))
+		  (end (progn
+			 (end-of-line)
+			 (point))))
+	      (if (< beg end)
+		  (put-text-property beg end 'face '(:strike-through t)))))))
       (goto-char p))))
 
 (defun habitrpg-downvote-at-point ()
