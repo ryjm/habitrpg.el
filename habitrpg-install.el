@@ -1,4 +1,4 @@
-;;; el-get-install.el --- installer for the lazy
+;;; habitrpg-install.el --- installer for the lazy
 ;;
 ;; Copyright (C) 2010 Dimitri Fontaine <modified for habitrpg.el by ryjm>
 ;;
