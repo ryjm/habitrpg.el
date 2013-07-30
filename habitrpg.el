@@ -1404,10 +1404,13 @@ there. If its state is DONE, update."
   (save-window-excursion
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
     (lexical-let* ((task (nth 4 (org-heading-components)))
+		   (state (nth 2 (org-heading-components)))
 		  type)
       (habitrpg-get-id task
 		       (lambda (id)
-			 (if (not (string=(nth 2 (org-heading-components)) "DONE"))
+			 (save-window-excursion
+			   (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
+			 (if (not (string= state "DONE"))
 			     (progn
 			       (cond
 				((member "hrpghabit" (org-get-tags-at))
