@@ -1244,7 +1244,8 @@ TITLE is the displayed title of the section."
 					 (petnames (dotimes (i (length pets))
 						     (let ((pet (aref pets i)))
 						       (insert (concat "type: pet " pet
-								       " id: 0" " value: 0" "\n"))))))))))))
+								       " id: 0" " value: 0" "\n")))))))
+				  (sort-numeric-fields -1 (point-min) (point-max)))))))
 
 
 (habitrpg-define-inserter habits ()
