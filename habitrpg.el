@@ -310,6 +310,7 @@ The function is given one argument, the status buffer."
                                  (length heading))) ?\ )
           info-string "\n"))
 
+;;;###autoload
 (defun habitrpg-status ()
   (interactive)
   (when (and (not habitrpg-api-user) (not habitrpg-api-token))
