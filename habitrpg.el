@@ -22,79 +22,79 @@
 
 
 ;; habitrpg.el ===============
-;; 
-;; Integrate org-mode and habitrpg. Very much a work in progress. Adds
+;;
+;; Integrate org-mode and habitrpg.  Very much a work in progress.  Adds
 ;; a task to habitrpg.com after a TODO state change in org-mode or by
 ;; calling the function `habitrpg-add`.
-;; 
+;;
 ;; Tag (in org-mode) your habits and dailys with `hrpghabit`,
 ;; `hrpgdaily`, and `hrpgreward` to get them in the corresponding
 ;; categories.
-;; 
+;;
 ;; Easy Install -----------
-;; 
+;;
 ;; Put this in an empty buffer (`*scratch*`for example), move cursor
 ;; to bottom, and hit C-j.
-;; 
+;;
 ;; ```lisp ;; C-j at end of this block to install habitrpg.el
 ;; (url-retrieve
 ;; "https://raw.github.com/ryjm/habitrpg.el/master/habitrpg-install.el"
 ;; (lambda (s) (goto-char (point-max)) (eval-print-last-sexp))) ```
-;; 
+;;
 ;; That's it! You will be prompted for an API key and token, or you
 ;; can insert the default configuration into your .emacs (it will
 ;; print in a buffer so you can copy and paste).
-;; 
+;;
 ;; Installation ------------
-;; 
+;;
 ;; Install `request.el` and `deferred.el`, which you can get through
-;; el-get or package.el (M-x package-list-packages). I also included
+;; el-get or package.el (M-x package-list-packages).  I also included
 ;; them in this repo.
-;; 
+;;
 ;; Clone this repo: `git clone https://github.com/ryjm/habitrpg.el`
-;; 
+;;
 ;; Add to your .emacs (if you used the install script the path will be
 ;; in .emacs.d):
-;; 
+;;
 ;;     (add-to-list 'load-path "path/to/repo/habitrpg.el") (setq
 ;;     habitrpg-api-user "ID-HERE") (setq habitrpg-api-token
 ;;     "TOKEN-HERE")
-;; 
+;;
 ;; Add this hook if you want a DONE task to be marked as complete and
 ;; a todo state change to add a task to habitrpg.com
-;; 
+;;
 ;;      (add-hook 'org-after-todo-state-change-hook 'habitrpg-add
 ;;      'append)
-;; 
+;;
 ;; Add keybindings.
-;; 
+;;
 ;;     (global-set-key (kbd "C-c C-x h") 'habitrpg-add)
 ;;      (global-set-key (kbd "<f9> a") 'habitrpg-status)
-;; 
+;;
 ;; You can then bring up the habitrpg buffer with `<f9> a`, and do
 ;; `C-h m` to see the keybindings.
-;; 
+;;
 ;; ![buffer](http://i.imgur.com/M5EfSkd.png)
 ;; ![buffer2](http://i.imgur.com/w3XIzL9.gif)
-;; 
+;;
 ;; -------------------------------------------------------------------------------
-;; 
+;;
 ;; If you want to use the clocking feature:
-;; 
+;;
 ;;      (add-hook 'org-clock-in-hook 'habitrpg-clock-in) (add-hook
 ;;      'org-clock-out-hook 'habitrpg-clock-out)
-;; 
+;;
 ;; and set the variable `hrpg-tags-list` to the habits you want to
 ;; associate with the clocked task.
-;; 
+;;
 ;;     (add-to-list 'hrpg-tags-list "PROGRAMMING") (add-to-list
 ;;     'hrpg-tags-list "WORK")
-;; 
+;;
 ;; Then your habit will get upvoted every two minutes.
 
 ;; Most of the code for the status buffer was taken from the Magit
-;;project. I really like the way they set up the sections, it's very
-;;modular so you can add different sections easily. This will be
+;;project.  I really like the way they set up the sections, it's very
+;;modular so you can add different sections easily.  This will be
 ;;useful for when habitrpg gets more features.
 ;;; Code:
 
@@ -259,18 +259,18 @@ Many Habitrpg faces inherit from this one by default."
   :group 'habitrpg-faces)
 
 (defvar habitrpg-tmp-buffer-name " *habitrpg-tmp*")
-(defvar habitrpg-header-line-string nil 
+(defvar habitrpg-header-line-string nil
   "Header line that shows when you are clocked into a habit that is to be downvoted.")
 
 (defconst hrpg-repeat-interval 120)
 (defvar habitrpg-mode-hook nil "Hook run by `habitrpg-status-mode'.")
 
-(defvar hrpg-timer)  
+(defvar hrpg-timer)
 (defvar hrpg-status-to-file nil)
 (defvar hrpg-tags-list nil)
 (defvar hrpg-bad-tags-list nil
-  "List of org mode tags that specify a habit which should be
-  downvoted. This is an alist where each element is of the
+  "List of org mode tags that specify a habit which should be downvoted.
+This is an alist where each element is of the
   form (HABIT . TIME), where TIME is a string (like \"1 hour\")
   specifying when we should start downvoting this habit.")
 
@@ -323,7 +323,7 @@ The function is given one argument, the status buffer."
   (when (and (not habitrpg-api-user) (not habitrpg-api-token))
     (setq habitrpg-api-user (read-from-minibuffer "API User ID: ")
 	  habitrpg-api-token (read-from-minibuffer "API Token: ")))
-  (let ((buf (or (habitrpg-find-status-buffer 'habitrpg-status-mode) 
+  (let ((buf (or (habitrpg-find-status-buffer 'habitrpg-status-mode)
 		 (generate-new-buffer
 		  "*habitrpg:status*"))))
     (funcall habitrpg-status-buffer-switch-function buf)
@@ -353,7 +353,7 @@ The function is given one argument, the status buffer."
 		  ("X-API-User" . ,habitrpg-api-user)
 		  ("X-API-Key" . ,habitrpg-api-token))
        :sync t
-       :success (function* 
+       :success (function*
 		 (lambda (&key data &allow-other-keys)
 		   (let* ((stats (assoc-default 'stats data))
 			  ;; stats
@@ -380,50 +380,51 @@ The function is given one argument, the status buffer."
 			  (pref (assoc-default 'preferences data))
 			  (day (assoc-default 'dayStart pref)))
 		     (habitrpg-with-section nil 'stats
-		       (habitrpg-insert-status-line (propertize user 'face 'habitrpg-user)
-						    (concat (if (eq rest t)
-								(propertize "Resting" 'face 'font-lock-warning-face)
-							      "") 
-							    (propertize 
-							     (format " New day starts at %s:00" 
-								     (if (stringp day)
-									 (if (eq (string-width day) 1)
-									     (concat "0" day)
-									   day)
-								       (number-to-string day)))
-								     'face 'habitrpg-day)))
-		       
-		       (habitrpg-insert-status-line (concat "Experience: " 
+		       (habitrpg-insert-status-line
+			(propertize user 'face 'habitrpg-user)
+			(concat (if (eq rest t)
+				    (propertize "Resting" 'face 'font-lock-warning-face)
+				  "")
+				(propertize
+				 (format " New day starts at %s:00"
+					 (if (stringp day)
+					     (if (eq (string-width day) 1)
+						 (concat "0" day)
+					       day)
+					   (number-to-string day)))
+				 'face 'habitrpg-day)))
+
+		       (habitrpg-insert-status-line (concat "Experience: "
 							    (propertize
 							     (number-to-string (floor exp))
 							     'face 'habitrpg-exp))
 						    (propertize (number-to-string nextlvl) 'face 'habitrpg-nextlvl))
-		       (habitrpg-insert-status-line (concat "Gold: " 
+		       (habitrpg-insert-status-line (concat "Gold: "
 							    (propertize (number-to-string (floor gp))
 									'face 'habitrpg-gold)) "")
-		       (habitrpg-insert-status-line (concat "Health: " 
-							    (propertize (number-to-string (floor hp)) 
+		       (habitrpg-insert-status-line (concat "Health: "
+							    (propertize (number-to-string (floor hp))
 									'face 'habitrpg-hp))
 						    (propertize (number-to-string maxhp) 'face 'habitrpg-maxhp))
-		       (habitrpg-insert-status-line (concat "Level: " 
-							    (propertize 
+		       (habitrpg-insert-status-line (concat "Level: "
+							    (propertize
 							     (number-to-string (floor lvl))
 							     'face 'habitrpg-lvl)) "\n")
-		     (let ((habitrpg-section-hidden-default t))
-		       (habitrpg-with-section uid 'auth
-			 (insert (propertize "[UID]\n" 'face 'font-lock-comment-face))
-			 (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))
-		       (habitrpg-with-section born 'born
+		       (let ((habitrpg-section-hidden-default t))
+			 (habitrpg-with-section uid 'auth
+			   (insert (propertize "[UID]\n" 'face 'font-lock-comment-face))
+			   (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))
+			 (habitrpg-with-section born 'born
 
-			 (let* ((borndate (format-time-string "%Y-%m-%d %T UTC" (seconds-to-time (/ born 1000))))
-				(age (- (time-to-days (current-time))(time-to-days (date-to-time borndate)))))
-			   (insert (propertize "[Age] - " 'face 'font-lock-comment-face)
-				   (propertize (concat
-						(number-to-string age) " days old" "\n")
-					       'face 'font-lock-keyword-face))
-			   (insert (propertize (concat
-						"Born on: " borndate "\n")
-					       'face 'font-lock-keyword-face))))))))))
+			   (let* ((borndate (format-time-string "%Y-%m-%d %T UTC" (seconds-to-time (/ born 1000))))
+				  (age (- (time-to-days (current-time))(time-to-days (date-to-time borndate)))))
+			     (insert (propertize "[Age] - " 'face 'font-lock-comment-face)
+				     (propertize (concat
+						  (number-to-string age) " days old" "\n")
+						 'face 'font-lock-keyword-face))
+			     (insert (propertize (concat
+						  "Born on: " borndate "\n")
+						 'face 'font-lock-keyword-face))))))))))
 
 
       (insert "\n")
@@ -435,7 +436,7 @@ The function is given one argument, the status buffer."
       (habitrpg-insert-potions)
       (habitrpg-insert-pets)
       (kill-buffer "*request*"))))
-			 
+
 (defun habitrpg-mode ()
   "Review the status of your habitrpg characters.
 
@@ -498,7 +499,7 @@ The function is given one argument, the status buffer."
 ;; A buffer in habitrpg-mode is organized into hierarchical sections.
 ;; These sections are used for navigation and for hiding parts of the
 ;; buffer.
-;; 
+;;
 ;; Most sections also represent the objects that Habitrpg works with.
 ;; The 'type' of a section identifies what kind of object it
 ;; represents (if any), and the parent and grand-parent, etc provide
@@ -794,17 +795,16 @@ and CLAUSES.
                          (cdr secs)))))
   (car secs))
 
-(defun habitrpg-find-section-before (pos)
-  "Return the last section that begins before POS."
+(defun habitrpg-find-section-before (pos) "Return the last section that begins before POS."
   (let ((section (habitrpg-find-section-at pos)))
     (cl-do* ((current (or (habitrpg-section-parent section)
-                          section)
-                      next)
-             (next (if (not (habitrpg-section-hidden current))
-                       (habitrpg-find-section-before* pos (habitrpg-section-children current)))
-                   (if (not (habitrpg-section-hidden current))
-                       (habitrpg-find-section-before* pos (habitrpg-section-children current)))))
-        ((null next) current))))
+			  section) next)
+	     (next
+	      (if (not (habitrpg-section-hidden current))
+		  (habitrpg-find-section-before* pos (habitrpg-section-children current)))
+	      (if (not (habitrpg-section-hidden current))
+		  (habitrpg-find-section-before* pos (habitrpg-section-children current)))))
+	((null next) current))))
 
 (defun habitrpg-find-section-before* (pos secs)
   "Find the last section that begins before POS in the list SECS."
@@ -956,11 +956,11 @@ true, shown otherwise."
   (interactive)
   (habitrpg-section-hideshow #'habitrpg-section-expand))
 
-(defun habitrpg-toggle-file-section ()
-  "Like `habitrpg-toggle-section' but toggle at file granularity."
-  (interactive)
-  (when (eq 'hunk (car (habitrpg-section-context-type (habitrpg-current-section))))
-    (habitrpg-goto-parent-section))
+(defun habitrpg-toggle-file-section () 
+  "Like `habitrpg-toggle-section' but toggle at file granularity." 
+  (interactive) 
+  (when (eq 'hunk (car (habitrpg-section-context-type (habitrpg-current-section)))) 
+    (habitrpg-goto-parent-section)) 
   (habitrpg-toggle-section))
 
 (defun habitrpg-toggle-section ()
@@ -1094,8 +1094,7 @@ pon ancestors and descendants of current section."
                (or ignore-modtime (not (verify-visited-file-modtime buffer))))
       (with-current-buffer buffer
         (condition-case err
-            (revert-buffer t t nil)
-          )))))
+            (revert-buffer t t nil))))))
 
 (defvar habitrpg-refresh-needing-buffers nil)
 (defvar habitrpg-refresh-pending nil)
@@ -1212,12 +1211,12 @@ TITLE is the displayed title of the section."
 					 (potions (assoc-default 'hatchingPotions items))
 					 (pets (assoc-default 'pets items))
 					 (names (dolist (task-id tasks)
-						  (if (and (string= (assoc-default 'completed task-id) "t") 
+						  (if (and (string= (assoc-default 'completed task-id) "t")
 							   (not (string= (assoc-default 'type task-id) "todo")))
-						      (progn   
-							(insert (concat "type: " 
+						      (progn
+							(insert (concat "type: "
 									(assoc-default 'type task-id) " " "COMPLETED "
-									(assoc-default 'text task-id) " " 
+									(assoc-default 'text task-id) " "
 									"id: "
 									(symbol-name (car task-id)) " "))
 							(let* ((value (assoc-default 'value task-id)))
@@ -1230,8 +1229,8 @@ TITLE is the displayed title of the section."
 							    (insert "value: 0\n"))))
 						    (unless (string= (assoc-default 'completed task-id) "t")
 						      (insert (concat "type: "
-								      (assoc-default 'type task-id) " " 
-								      (assoc-default 'text task-id) " " 
+								      (assoc-default 'type task-id) " "
+								      (assoc-default 'text task-id) " "
 								      "id: "
 								      (symbol-name (car task-id)) " "))
 						      (let* ((value (assoc-default 'value task-id)))
@@ -1306,10 +1305,10 @@ TITLE is the displayed title of the section."
 		       (setq done nil) "")
 		     (make-string habitrpg-indentation-level ?\t)
 		     (propertize
-		      task-name 
+		      task-name
 		      'face `((:box t)
 			      (:foreground ,(if (> 0.5 (habitrpg-x-color-luminance color))
-                               "white" "black")) 
+                               "white" "black"))
 			      (:background ,color)
 			      ,(if done
 				  '(:strike-through t)
@@ -1336,9 +1335,9 @@ FUNC should leave point at the end of the modified region"
   (while (and (not (eobp))
               (funcall func))))
 
-;; 
+;;
 ;; Colors determined by `value' defined by habitrpg.com
-;; 
+;;
 (defun habitrpg-x-color-luminance (color)
   "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\"). Taken from `rainbow'.
 Return a value between 0 and 1."
@@ -1362,7 +1361,7 @@ Return a value between 0 and 1."
 	 (good "rgb(217, 234, 211)")
 	 (better "rgb(208, 224, 227)")
 	 (best "rgb(201, 218, 248)"))
-    (cond 
+    (cond
      ((< value -20)
       (hrgb worst))
      ((< value -10)
@@ -1410,13 +1409,13 @@ With a prefix argument, kill the buffer instead."
   (interactive "P")
   (quit-window kill-buffer (selected-window)))
 
-;; 
+;;
 ;; API interface
-;; 
+;;
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline add TASK if it isn't already
-there. If its state is DONE, update."
+there.  If its state is DONE, update."
   (interactive)
   (save-window-excursion
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
@@ -1458,7 +1457,7 @@ there. If its state is DONE, update."
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
   (request
-     (concat habitrpg-api-url "/user/task/") 
+     (concat habitrpg-api-url "/user/task/")
      :type "POST"
      :headers `(("Accept" . "application/json")
 		("X-API-User" . ,habitrpg-api-user)
@@ -1484,8 +1483,8 @@ there. If its state is DONE, update."
     (habitrpg-refresh-status)
     (goto-char p))))
 
-(defvar hrpg-id nil "ID for a habitrpg task")
-(defvar hrpg-task nil "habitrpg task")
+(defvar hrpg-id nil "ID for a habitrpg task.")
+(defvar hrpg-task nil "Habitrpg task.")
 
 (defun habitrpg-get-id (task func)
   (lexical-let ((t task) (func func))
@@ -1500,17 +1499,17 @@ there. If its state is DONE, update."
        (lambda (response)
 		 (let* ((data (request-response-data response))
 			(tasks (assoc-default 'tasks data))
-			(names (mapcar 
+			(names (mapcar
 				(lambda (task-id)
 				  (let* ((completed (assoc-default 'completed task-id)))
 				    (when (not (stringp completed))
 				      (setq completed (symbol-name completed)))
-				      (when (and 
-					     (or 
+				      (when (and
+					     (or
 					      (string= completed "False")
 					      (string= completed ":json-false")
-					      (string= 
-					       (assoc-default 'type task-id) "habit")) 
+					      (string=
+					       (assoc-default 'type task-id) "habit"))
 					     (string= (assoc-default
 						       'text task-id)
 						      t))
@@ -1555,8 +1554,8 @@ there. If its state is DONE, update."
     id))
 
 (defun habitrpg-upvote-at-point ()
-  "Upvote a task. Add task if it doesn't exist."
-  (interactive)  
+  "Upvote a task.  Add task if it doesn't exist."
+  (interactive)
   (save-excursion
     (end-of-visible-line)
     (let* ((id (habitrpg-get-id-at-point))
@@ -1565,11 +1564,11 @@ there. If its state is DONE, update."
 	  (type (habitrpg-section-title (habitrpg-section-parent section)))
 	  (p (point)))
       (habitrpg-upvote id)
-      (message "Task updated: %s" 
+      (message "Task updated: %s"
 	       (car (car info)))
       (let ((inhibit-read-only t))
 	(if (or (string= type "habit") (string= type "reward"))
-	    (progn 
+	    (progn
 	      (habitrpg-refresh-status)
 	      (goto-char p))
 	  (let ((inhibit-read-only t))
@@ -1585,7 +1584,7 @@ there. If its state is DONE, update."
       (goto-char p))))
 
 (defun habitrpg-downvote-at-point ()
-  "Downvote a task. Add task if it doesn't exist."
+  "Downvote a task.  Add task if it doesn't exist."
   (interactive)
   (end-of-visible-line)
   (let ((id (habitrpg-get-id-at-point))
@@ -1630,7 +1629,7 @@ there. If its state is DONE, update."
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
   (lexical-let ((habit (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal)))
-		(badhabit (dolist 
+		(badhabit (dolist
 			      (tag (org-get-tags-at) badtag)
 			    (setq badtag (assoc tag hrpg-bad-tags-list)))))
     (cond (habit
@@ -1642,7 +1641,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 	  (badhabit
 	   (habitrpg-get-id (car badhabit)
 			    (lambda (id)
-			      (setq hrpg-timer (run-at-time 
+			      (setq hrpg-timer (run-at-time
 						(cdr badhabit)
 						hrpg-repeat-interval
 						'habitrpg-upvote
@@ -1654,7 +1653,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 	   (save-window-excursion
 	     (with-current-buffer "*habitrpg:status*"
 		 (setq header-line-format habitrpg-header-line-string)))))))
-		       
+
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
@@ -1663,10 +1662,10 @@ Continuously upvote habits associated with the currently clocking task, based on
   (save-window-excursion
     (with-current-buffer "*habitrpg:status*"
       (setq header-line-format nil))))
-	      
+
 
 (defun habitrpg-search-task-name ()
-  "Try to find task in org-mode."
+  "Try to find task in `org-mode'."
   (interactive)
   (org-occur-in-agenda-files (habitrpg-section-title (habitrpg-current-section))))
 
@@ -1677,5 +1676,5 @@ Continuously upvote habits associated with the currently clocking task, based on
     (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1")))
 
 (provide 'habitrpg)
-(require 'habitrpg-key-mode)	  
+(require 'habitrpg-key-mode)
 ;;; habitrpg.el ends here
