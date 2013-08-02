@@ -259,6 +259,8 @@ Many Habitrpg faces inherit from this one by default."
   :group 'habitrpg-faces)
 
 (defvar habitrpg-tmp-buffer-name " *habitrpg-tmp*")
+(defvar habitrpg-header-line-string nil 
+  "Header line that shows when you are clocked into a habit that is to be downvoted.")
 
 (defconst hrpg-repeat-interval 120)
 (defvar habitrpg-mode-hook nil "Hook run by `habitrpg-status-mode'.")
@@ -266,6 +268,11 @@ Many Habitrpg faces inherit from this one by default."
 (defvar hrpg-timer)  
 (defvar hrpg-status-to-file nil)
 (defvar hrpg-tags-list nil)
+(defvar hrpg-bad-tags-list nil
+  "List of org mode tags that specify a habit which should be
+  downvoted. This is an alist where each element is of the
+  form (HABIT . TIME), where TIME is a string (like \"1 hour\")
+  specifying when we should start downvoting this habit.")
 
 (defvar habitrpg-refresh-function nil)
 (make-variable-buffer-local 'habitrpg-refresh-function)
@@ -335,6 +342,7 @@ The function is given one argument, the status buffer."
   (habitrpg-refresh-buffer))
 
 (defun habitrpg-refresh-status ()
+  (setq header-line-format habitrpg-header-line-string)
   (habitrpg-create-buffer-sections
     (habitrpg-with-section 'status nil
       (request
@@ -1516,6 +1524,7 @@ there. If its state is DONE, update."
 
 
 (defun habitrpg-upvote (id &optional task type text direction)
+  (lexical-let ((direction direction) (task task))
   (request
    (concat habitrpg-api-url "/user/tasks/" id "/"
 	   (unless direction "up") direction)
@@ -1535,7 +1544,11 @@ there. If its state is DONE, update."
 				 (insert (concat "exp: " (number-to-string (truncate exp))
 						 " gp: " (number-to-string (truncate gp))
 						 " hp: " (number-to-string (truncate hp))
-						 " lvl: " (number-to-string (truncate lvl)))))))))))
+						 " lvl: " (number-to-string (truncate lvl)))))))
+			 (cond ((string= direction "down")
+				(message "Health lost for habit %s" task))
+			       ((not (string= direction "up"))
+				(message "Experience gained!"))))))))
 
 (defun habitrpg-get-id-at-point ()
   (let ((id (cdr (car (habitrpg-section-info (habitrpg-current-section))))))
@@ -1616,17 +1629,41 @@ there. If its state is DONE, update."
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
-  (lexical-let ((task (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal))))
-       (if task
-	   (habitrpg-get-id task 
+  (lexical-let ((habit (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal)))
+		(badhabit (dolist 
+			      (tag (org-get-tags-at) badtag)
+			    (setq badtag (assoc tag hrpg-bad-tags-list)))))
+    (cond (habit
+	   (habitrpg-get-id habit
 			    (lambda (id)
 			      (setq hrpg-timer (run-at-time nil hrpg-repeat-interval
-							    'habitrpg-upvote id task "habit" ""))
-			      (message "Clocked into habit \"%s\"" task))))))
+							    'habitrpg-upvote id habit "habit" ""))
+			      (message "Clocked into habit \"%s\"" habit))))
+	  (badhabit
+	   (habitrpg-get-id (car badhabit)
+			    (lambda (id)
+			      (setq hrpg-timer (run-at-time 
+						(cdr badhabit)
+						hrpg-repeat-interval
+						'habitrpg-upvote
+						id (car badhabit)
+						"habit" "" "down"))
+			      (message "Warning: Clocked into habit \"%s\""
+				       (car badhabit))))
+	   (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
+	   (save-window-excursion
+	     (with-current-buffer "*habitrpg:status*"
+		 (setq header-line-format habitrpg-header-line-string)))))))
+		       
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
-  (cancel-function-timers 'habitrpg-upvote))
+  (cancel-function-timers 'habitrpg-upvote)
+  (setq habitrpg-header-line-string nil)
+  (save-window-excursion
+    (with-current-buffer "*habitrpg:status*"
+      (setq header-line-format nil))))
+	      
 
 (defun habitrpg-search-task-name ()
   "Try to find task in org-mode."

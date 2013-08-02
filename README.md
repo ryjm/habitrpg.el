@@ -62,3 +62,11 @@ and set the variable `hrpg-tags-list` to the habits you want to associate with t
     (add-to-list 'hrpg-tags-list "WORK")
 
 Then your habit will get upvoted every two minutes.
+
+Similarly, you can do the following:
+
+    (add-to-list 'hrpg-bad-tags-list '("wasting_time" . "10 minutes"))
+
+When you clock in on an org-mode headline tagged with "wasting_time", a header line will appear on the `habitrpg:status` buffer indicating that you are clocked in on a bad habit, and after 10 minutes the habit will start to be downvoted every two minutes.
+
+You can change the repeat variable by setting `hrpg-repeat-interval` to a different value (in seconds).
