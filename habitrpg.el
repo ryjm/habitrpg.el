@@ -1650,18 +1650,20 @@ Continuously upvote habits associated with the currently clocking task, based on
 			      (message "Warning: Clocked into habit \"%s\""
 				       (car badhabit))))
 	   (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
-	   (save-window-excursion
-	     (with-current-buffer "*habitrpg:status*"
-		 (setq header-line-format habitrpg-header-line-string)))))))
+	   (when (get-buffer "*habitrpg:status")
+	     (save-window-excursion
+	       (with-current-buffer "*habitrpg:status*"
+		 (setq header-line-format habitrpg-header-line-string))))))))
 
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
   (cancel-function-timers 'habitrpg-upvote)
   (setq habitrpg-header-line-string nil)
-  (save-window-excursion
-    (with-current-buffer "*habitrpg:status*"
-      (setq header-line-format nil))))
+  (when (get-buffer "*habitrpg:status")
+    (save-window-excursion
+      (with-current-buffer "*habitrpg:status*"
+	(setq header-line-format nil)))))
 
 
 (defun habitrpg-search-task-name ()
