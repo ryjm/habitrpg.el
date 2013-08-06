@@ -1560,10 +1560,10 @@ there.  If its state is DONE, update."
   (save-excursion
     (end-of-visible-line)
     (let* ((id (habitrpg-get-id-at-point))
-	  (section (habitrpg-current-section))
-	  (info (habitrpg-section-info section))
-	  (type (habitrpg-section-title (habitrpg-section-parent section)))
-	  (p (point)))
+	   (section (habitrpg-current-section))
+	   (info (habitrpg-section-info section))
+	   (type (habitrpg-section-title (habitrpg-section-parent section)))
+	   (p (point)))
       (habitrpg-upvote id)
       (message "Task updated: %s"
 	       (car (car info)))
@@ -1582,7 +1582,33 @@ there.  If its state is DONE, update."
 			 (point))))
 	      (if (< beg end)
 		  (put-text-property beg end 'face '(:strike-through t)))))))
-      (goto-char p))))
+      (goto-char p)))
+  (save-window-excursion
+    (forward-char)
+    (let ((title (habitrpg-section-title (habitrpg-current-section)))
+	  (foundFlag nil))
+      (if (not (org-occur-in-agenda-files title))
+	  (with-current-buffer "*Occur*"
+	    (while (and (not (condition-case nil
+			    (occur-next)
+			  (error t)))
+			(not foundFlag))
+	      (occur-mode-goto-occurrence)
+	      (let* ((task (nth 4 (org-heading-components)))
+		     (state (nth 2 (org-heading-components)))
+		     type)
+		(if (and (string= title task) (or (string= state "TODO") (string= state "NEXT")))
+		    (progn
+		      (setq foundFlag t)
+		      (if (member 'habitrpg-add org-after-todo-state-change-hook)
+			  (progn
+			    (remove-hook 'org-after-todo-state-change-hook 'habitrpg-add)
+			    (org-todo 'done)
+			    (add-hook 'org-after-todo-state-change-hook 'habitrpg-add))
+			(org-todo 'done)))))
+	      (switch-to-buffer "*Occur*")))
+	(error "No org-mode headline with title \"%s\"" title)))))
+
 
 (defun habitrpg-downvote-at-point ()
   "Downvote a task.  Add task if it doesn't exist."
