@@ -1035,7 +1035,7 @@ pon ancestors and descendants of current section."
       (setq habitrpg-highlighted-section section)
       (if (not habitrpg-highlight-overlay)
           (let ((ov (make-overlay 1 1)))
-            (overlay-put ov 'face 'habitrpg-item-highlight)
+            (overlay-put ov 'face font-lock-warning-face)
             (setq habitrpg-highlight-overlay ov)))
       (if (and section (habitrpg-section-type section))
           (progn
