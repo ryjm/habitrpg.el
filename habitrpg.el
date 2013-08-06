@@ -294,6 +294,7 @@ This is an alist where each element is of the
     (define-key map (kbd "RET") 'habitrpg-search-task-name)
     (define-key map (kbd "<backtab>") 'habitrpg-expand-collapse-section)
     (define-key map (kbd "C-c C-c") 'habitrpg-upvote-at-point)
+    (define-key map (kbd "C-c C-x C-i") 'habitrpg-clock-in-status)
     (define-key map (kbd "C-c C-d") 'habitrpg-downvote-at-point)
     (define-key map (kbd "t") 'habitrpg-key-mode-popup-manage)
     (define-key map (kbd "g") 'habitrpg-refresh)
@@ -1671,6 +1672,22 @@ Continuously upvote habits associated with the currently clocking task, based on
   (interactive)
   (org-occur-in-agenda-files (habitrpg-section-title (habitrpg-current-section))))
 
+(defun habitrpg-clock-in-status ()
+  "Clock in to an `org-mode' task from status buffer."
+  (interactive)
+  (save-window-excursion
+    (forward-char)
+    (let ((title (habitrpg-section-title (habitrpg-current-section))))
+      (org-occur-in-agenda-files title)
+      (with-current-buffer "*Occur*"
+	(occur-next)
+	(occur-mode-goto-occurrence)
+	(let* ((task (nth 4 (org-heading-components)))
+	       (state (nth 2 (org-heading-components)))
+	       type)
+	  (if (string= title task)
+	      (org-clock-in)
+	    (error "No org-mode headline with title \"%s\"" title)))))))
 (defun habitrpg-change-server ()
   (interactive)
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
