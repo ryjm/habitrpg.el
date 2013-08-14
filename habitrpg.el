@@ -1654,39 +1654,46 @@ there.  If its state is DONE, update."
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
-  (lexical-let ((habit (car (intersection (org-get-tags-at) hrpg-tags-list :test 'equal)))
-		(badhabit (dolist
-			      (tag (org-get-tags-at) badtag)
-			    (setq badtag (assoc tag hrpg-bad-tags-list)))))
-    (cond (habit
-	   (habitrpg-get-id habit
-			    (lambda (id)
-			      (setq hrpg-timer (run-at-time nil hrpg-repeat-interval
-							    'habitrpg-upvote id habit "habit" ""))
-			      (message "Clocked into habit \"%s\"" habit))))
-	  (badhabit
-	   (habitrpg-get-id (car badhabit)
-			    (lambda (id)
-			      (setq hrpg-timer (run-at-time
-						(cdr badhabit)
-						hrpg-repeat-interval
-						'habitrpg-upvote
-						id (car badhabit)
-						"habit" "" "down"))
-			      (message "Warning: Clocked into habit \"%s\""
-				       (car badhabit))))
-	   (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
-	   (when (get-buffer "*habitrpg:status")
-	     (save-window-excursion
-	       (with-current-buffer "*habitrpg:status*"
-		 (setq header-line-format habitrpg-header-line-string))))))))
+  (cancel-function-timers 'habitrpg-upvote)
+  (when (get-buffer "*habitrpg:status*")
+    (save-window-excursion
+      (with-current-buffer "*habitrpg:status*"
+	(setq header-line-format nil))))
+  (lexical-let* ((tags (org-get-tags-at))
+		 (habit (car (intersection tags hrpg-tags-list :test 'equal)))
+		 (badhabit (dolist
+			       (tag tags badtag)
+			     (setq badtag (assoc tag hrpg-bad-tags-list)))))
+    (when tags
+      (cond (habit
+	     (habitrpg-get-id habit
+			      (lambda (id)
+				(setq hrpg-timer (run-at-time nil hrpg-repeat-interval
+							      'habitrpg-upvote id habit "habit" ""))
+				(message "Clocked into habit \"%s\"" habit))))
+	    (badhabit
+	     (habitrpg-get-id (car badhabit)
+			      (lambda (id)
+				(setq hrpg-timer (run-at-time
+						  (cdr badhabit)
+						  hrpg-repeat-interval
+						  'habitrpg-upvote
+						  id (car badhabit)
+						  "habit" "" "down"))
+				(message "Warning: Clocked into habit \"%s\""
+					 (car badhabit))))
+	     (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
+	     (when (get-buffer "*habitrpg:status*")
+	       (save-window-excursion
+		 (with-current-buffer "*habitrpg:status*"
+		   (setq header-line-format habitrpg-header-line-string)))))))))
 
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
   (cancel-function-timers 'habitrpg-upvote)
   (setq habitrpg-header-line-string nil)
-  (when (get-buffer "*habitrpg:status")
+  (when (get-buffer "*habitrpg:status*")
     (save-window-excursion
       (with-current-buffer "*habitrpg:status*"
 	(setq header-line-format nil)))))
