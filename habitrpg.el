@@ -1702,24 +1702,26 @@ Continuously upvote habits associated with the currently clocking task, based on
 (defun habitrpg-search-task-name ()
   "Try to find task in `org-mode'."
   (interactive)
-  (org-occur-in-agenda-files (habitrpg-section-title (habitrpg-current-section))))
+  (save-excursion
+    (org-occur-in-agenda-files (habitrpg-section-title (habitrpg-current-section)))))
 
 (defun habitrpg-clock-in-status ()
   "Clock in to an `org-mode' task from status buffer."
   (interactive)
   (save-window-excursion
-    (forward-char)
-    (let ((title (habitrpg-section-title (habitrpg-current-section))))
-      (org-occur-in-agenda-files title)
-      (with-current-buffer "*Occur*"
-	(occur-next)
-	(occur-mode-goto-occurrence)
-	(let* ((task (nth 4 (org-heading-components)))
-	       (state (nth 2 (org-heading-components)))
-	       type)
-	  (if (string= title task)
-	      (org-clock-in)
-	    (error "No org-mode headline with title \"%s\"" title)))))))
+    (save-excursion
+      (forward-char)
+      (let ((title (habitrpg-section-title (habitrpg-current-section))))
+	(org-occur-in-agenda-files title)
+	(with-current-buffer "*Occur*"
+	  (occur-next)
+	  (occur-mode-goto-occurrence)
+	  (let* ((task (nth 4 (org-heading-components)))
+		 (state (nth 2 (org-heading-components)))
+		 type)
+	    (if (string= title task)
+		(org-clock-in)
+	      (error "No org-mode headline with title \"%s\"" title))))))))
 (defun habitrpg-change-server ()
   (interactive)
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
