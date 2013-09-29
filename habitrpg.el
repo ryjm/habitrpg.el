@@ -343,7 +343,7 @@ The function is given one argument, the status buffer."
   (habitrpg-refresh-buffer))
 
 (defun habitrpg-refresh-status ()
-  (setq header-line-format habitrpg-header-line-string)
+  (set-default 'header-line-format habitrpg-header-line-string)
   (habitrpg-create-buffer-sections
     (habitrpg-with-section 'status nil
       (request
@@ -1655,10 +1655,11 @@ there.  If its state is DONE, update."
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
   (cancel-function-timers 'habitrpg-upvote)
+  (set-default 'header-line-format habitrpg-header-line-string)
   (when (get-buffer "*habitrpg:status*")
     (save-window-excursion
       (with-current-buffer "*habitrpg:status*"
-	(setq header-line-format nil))))
+	(set-default 'header-line-format nil))))
   (lexical-let* ((tags (org-get-tags-at))
 		 (habit (car (intersection tags hrpg-tags-list :test 'equal)))
 		 (badhabit (dolist
@@ -1683,20 +1684,22 @@ Continuously upvote habits associated with the currently clocking task, based on
 				(message "Warning: Clocked into habit \"%s\""
 					 (car badhabit))))
 	     (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
+	     (set-default 'header-line-format habitrpg-header-line-string)
 	     (when (get-buffer "*habitrpg:status*")
 	       (save-window-excursion
 		 (with-current-buffer "*habitrpg:status*"
-		   (setq header-line-format habitrpg-header-line-string)))))))))
+		   (set-default 'header-line-format habitrpg-header-line-string)))))))))
 
 
 (defun habitrpg-clock-out ()
   "Stop upvoting."
   (cancel-function-timers 'habitrpg-upvote)
   (setq habitrpg-header-line-string nil)
+  (set-default 'header-line-format habitrpg-header-line-string)
   (when (get-buffer "*habitrpg:status*")
     (save-window-excursion
       (with-current-buffer "*habitrpg:status*"
-	(setq header-line-format nil)))))
+	(set-default 'header-line-format nil)))))
 
 
 (defun habitrpg-search-task-name ()
