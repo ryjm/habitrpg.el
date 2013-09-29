@@ -1545,7 +1545,7 @@ there.  If its state is DONE, update."
 						 " hp: " (number-to-string (truncate hp))
 						 " lvl: " (number-to-string (truncate lvl)))))))
 			 (cond ((string= direction "down")
-				(message "Health lost for habit %s" task))
+				(message-box "Health lost for habit %s" task))
 			       ((not (string= direction "up"))
 				(message "Experience gained!"))))))))
 
