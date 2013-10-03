@@ -415,17 +415,18 @@ The function is given one argument, the status buffer."
 			 (habitrpg-with-section uid 'auth
 			   (insert (propertize "[UID]\n" 'face 'font-lock-comment-face))
 			   (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))
-			 (habitrpg-with-section born 'born
-
-			   (let* ((borndate (format-time-string "%Y-%m-%d %T UTC" (seconds-to-time (/ born 1000))))
-				  (age (- (time-to-days (current-time))(time-to-days (date-to-time borndate)))))
-			     (insert (propertize "[Age] - " 'face 'font-lock-comment-face)
-				     (propertize (concat
-						  (number-to-string age) " days old" "\n")
-						 'face 'font-lock-keyword-face))
-			     (insert (propertize (concat
-						  "Born on: " borndate "\n")
-						 'face 'font-lock-keyword-face))))))))))
+			 ;; (habitrpg-with-section born 'born
+			 ;; 
+			 ;;   (let* ((borndate (format-time-string "%Y-%m-%d %T UTC" (seconds-to-time (/ born 1000))))
+			 ;; 	  (age (- (time-to-days (current-time))(time-to-days (date-to-time borndate)))))
+			 ;;     (insert (propertize "[Age] - " 'face 'font-lock-comment-face)
+			 ;; 	     (propertize (concat
+			 ;; 			  (number-to-string age) " days old" "\n")
+			 ;; 			 'face 'font-lock-keyword-face))
+			 ;;     (insert (propertize (concat
+			 ;; 			  "Born on: " borndate "\n")
+			 ;; 			 'face 'font-lock-keyword-face))))
+			 ))))))
 
 
       (insert "\n")
