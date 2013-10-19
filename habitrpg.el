@@ -1410,9 +1410,18 @@ With a prefix argument, kill the buffer instead."
   (interactive "P")
   (quit-window kill-buffer (selected-window)))
 
+
+
 ;;
 ;; API interface
 ;;
+
+;; set up advice for adding task
+(defadvice org-add-log-note (after delay-log)
+  (habitrpg-add))
+(defun habitrpg-setup ()
+  (ad-activate 'org-add-log-note))
+
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline add TASK if it isn't already
@@ -1422,12 +1431,22 @@ there.  If its state is DONE, update."
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
     (lexical-let* ((task (nth 4 (org-heading-components)))
 		   (state (nth 2 (org-heading-components)))
-		  type)
+		   (last-done-day 
+		    (if (member "hrpgdaily" (org-get-tags-at))
+			(butlast
+			(nthcdr 3
+			     (decode-time 
+			      (days-to-time 
+			       (car (sort 
+				     (org-habit-done-dates (org-habit-parse-todo)) '>))))) 4)))
+	  type)
+
+	
       (habitrpg-get-id task
 		       (lambda (id)
 			 (save-window-excursion
 			   (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
-			 (if (not (string= state "DONE"))
+			 (when (not (string= state "DONE"))
 			     (progn
 			       (cond
 				((member "hrpghabit" (org-get-tags-at))
@@ -1450,10 +1469,11 @@ there.  If its state is DONE, update."
 				       (progn
 					 (buffer-substring beg end))))
 				 (if (string= id "nil")
-				     (habitrpg-create type task text))))
-			   (progn
-			     (habitrpg-upvote id)
-			     (message "Task \"%s\" completed!" task)))))))))
+				     (habitrpg-create type task text)))))
+			 (when (and (equal last-done-day (reverse (butlast (calendar-current-date)))) (not (string= state "DONE")))
+			     (progn
+			       (habitrpg-upvote id)
+			       (message "Task \"%s\" completed!" task)))))))))
 
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
@@ -1470,7 +1490,7 @@ there.  If its state is DONE, update."
      :parser 'json-read
      :success (function*
 	       (lambda (&key data &allow-other-keys)
-		 (message "Creating task...")))))
+		 (message "Task created.")))))
 
 (defun habitrpg-new-task (&optional type)
   (let* ((type (or type "todo"))
@@ -1498,7 +1518,7 @@ there.  If its state is DONE, update."
      :parser 'json-read)
      (deferred:nextc it
        (lambda (response)
-		 (let* ((data (request-response-data response))
+	 (let* ((data (request-response-data response))
 			(tasks (assoc-default 'tasks data))
 			(names (mapcar
 				(lambda (task-id)
@@ -1514,13 +1534,24 @@ there.  If its state is DONE, update."
 					     (string= (assoc-default
 						       'text task-id)
 						      t))
-					(list (assoc-default 'text task-id) (car task-id))))) tasks)))
-		   (setq id (symbol-name (car (assoc-default t names))))
-		   (message "Got id %S for task %S" id t)
-		   (funcall func id)))))))
-
-
-
+					(list (assoc-default 'text task-id) (car task-id))))) tasks))
+			;; Completed tasks should not be upvoted, so
+			;; we should gather a list of those tasks and
+			;; set id to `completed' so the function will
+			;; know. The tasks which are completed are
+			;; those that are in `tasks' but not in `names'
+			(cnames (mapcar
+				 (lambda (task-id)
+				   (let* ((name (assoc-default 'text task-id)))
+				     (when (not (assoc-default name names))
+				       (list name (car task-id))))) tasks)))
+	   (if (assoc-default t cnames)
+	       (progn
+		 (setq id "completed")
+		 (message "Task %S has already been done!" t))
+	     (setq id (symbol-name (car (assoc-default t names))))
+	     (message "Got id %S for task %S" id t))
+	   (funcall func id)))))))
 
 
 (defun habitrpg-upvote (id &optional task type text direction)
