@@ -122,7 +122,7 @@
   :prefix "habitrpg-"
   :group 'tools)
 
-(defcustom habitrpg-api-url "https://beta.habitrpg.com/api/v1"
+(defcustom habitrpg-api-url "https://habitrpg.com/api/v1"
   "API url."
   :group 'habitrpg)
 (defcustom habitrpg-api-user nil
@@ -414,21 +414,7 @@ The function is given one argument, the status buffer."
 		       (let ((habitrpg-section-hidden-default t))
 			 (habitrpg-with-section uid 'auth
 			   (insert (propertize "[UID]\n" 'face 'font-lock-comment-face))
-			   (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))
-			 ;; (habitrpg-with-section born 'born
-			 ;; 
-			 ;;   (let* ((borndate (format-time-string "%Y-%m-%d %T UTC" (seconds-to-time (/ born 1000))))
-			 ;; 	  (age (- (time-to-days (current-time))(time-to-days (date-to-time borndate)))))
-			 ;;     (insert (propertize "[Age] - " 'face 'font-lock-comment-face)
-			 ;; 	     (propertize (concat
-			 ;; 			  (number-to-string age) " days old" "\n")
-			 ;; 			 'face 'font-lock-keyword-face))
-			 ;;     (insert (propertize (concat
-			 ;; 			  "Born on: " borndate "\n")
-			 ;; 			 'face 'font-lock-keyword-face))))
-			 ))))))
-
-
+			   (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))))))))
       (insert "\n")
       (habitrpg-insert-tasks)
       (habitrpg-insert-habits)
@@ -1206,7 +1192,10 @@ TITLE is the displayed title of the section."
 		    :success (function*
 			      (lambda (&key data &allow-other-keys)
 				(with-current-buffer (get-buffer-create "*request*")
-				  (let* ((tasks (assoc-default 'tasks data))
+				  (let* ((tasks (append (assoc-default 'todos data) 
+							(assoc-default 'dailys data)
+							(assoc-default 'habits data)
+							'()))
 					 (items (assoc-default 'items data))
 					 (eggs (assoc-default 'eggs items))
 					 (potions (assoc-default 'hatchingPotions items))
@@ -1219,7 +1208,7 @@ TITLE is the displayed title of the section."
 									(assoc-default 'type task-id) " " "COMPLETED "
 									(assoc-default 'text task-id) " "
 									"id: "
-									(symbol-name (car task-id)) " "))
+									(assoc-default 'id task-id) " "))
 							(let* ((value (assoc-default 'value task-id)))
 							  (if value
 							      (insert "value: "
@@ -1233,7 +1222,7 @@ TITLE is the displayed title of the section."
 								      (assoc-default 'type task-id) " "
 								      (assoc-default 'text task-id) " "
 								      "id: "
-								      (symbol-name (car task-id)) " "))
+								      (assoc-default 'id task-id) " "))
 						      (let* ((value (assoc-default 'value task-id)))
 							(if value
 							    (insert "value: "
@@ -1241,19 +1230,7 @@ TITLE is the displayed title of the section."
 									(number-to-string value)
 								      value)
 								    "\n")
-							  (insert "value: 0\n")))))))
-					 (eggnames (dotimes (i (length eggs))
-						     (let ((egg (aref eggs i)))
-						       (insert (concat "type: egg " (assoc-default 'name egg) " Egg"
-								       " id: 0" " value: 0" "\n")))))
-					 (potnames (dotimes (i (length potions))
-						     (let ((pot (aref potions i)))
-						       (insert (concat "type: potion " pot
-								       " id: 0" " value: 0" "\n")))))
-					 (petnames (dotimes (i (length pets))
-						     (let ((pet (aref pets i)))
-						       (insert (concat "type: pet " pet
-								       " id: 0" " value: 0" "\n")))))))
+							  (insert "value: 0\n")))))))))
 				  (sort-numeric-fields -1 (point-min) (point-max)))))))
 
 
@@ -1417,20 +1394,33 @@ With a prefix argument, kill the buffer instead."
 ;;
 
 ;; set up advice for adding task
-(defadvice org-add-log-note (after delay-log)
-  (habitrpg-add))
+(defadvice org-store-log-note (after delay-log)
+  (ad-deactivate 'org-store-log-note)
+  (save-excursion
+    (habitrpg-add)))
 (defun habitrpg-setup ()
-  (ad-activate 'org-add-log-note))
+  (save-excursion (save-window-excursion
+    (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
+    (lexical-let* ((in-habit (org-entry-get-with-inheritance "IN_HABITRPG")))
+      (cond
+       ((string= in-habit "unknown")
+	(habitrpg-add))
+       ((string= in-habit "yes")
+	(habitrpg-add))
+       ((string= in-habit "no")
+	t)))))
+  (ad-activate 'org-store-log-note))
 
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline add TASK if it isn't already
 there.  If its state is DONE, update."
   (interactive)
-  (save-window-excursion
+  (save-excursion (save-window-excursion
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
     (lexical-let* ((task (nth 4 (org-heading-components)))
 		   (state (nth 2 (org-heading-components)))
+		   (in-habit (org-entry-get-with-inheritance "IN_HABITRPG"))
 		   (last-done-day 
 		    (if (member "hrpgdaily" (org-get-tags-at))
 			(butlast
@@ -1444,9 +1434,9 @@ there.  If its state is DONE, update."
 	
       (habitrpg-get-id task
 		       (lambda (id)
-			 (save-window-excursion
+			 (save-excursion (save-window-excursion
 			   (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
-			 (when (not (string= state "DONE"))
+			   (when (not (string= state "DONE"))
 			     (progn
 			       (cond
 				((member "hrpghabit" (org-get-tags-at))
@@ -1468,12 +1458,20 @@ there.  If its state is DONE, update."
 				      (text
 				       (progn
 					 (buffer-substring beg end))))
+				 (org-back-to-heading)
 				 (if (string= id "nil")
-				     (habitrpg-create type task text)))))
+				     (progn
+				       (habitrpg-create type task text)
+				       (if (string= in-habit "unknown")
+					   (org-entry-put (point) "IN_HABITRPG" "yes")))
+				   (if (string= in-habit "unknown")
+				       (org-entry-put (point) "IN_HABITRPG" "yes"))))))))
 			 (when (and (equal last-done-day (reverse (butlast (calendar-current-date)))) (not (string= state "DONE")))
-			     (progn
-			       (habitrpg-upvote id)
-			       (message "Task \"%s\" completed!" task)))))))))
+			   (habitrpg-upvote id)
+			   (message "Task \"%s\" completed!" task))
+			 (when (string= state "DONE")
+			   (habitrpg-upvote id)
+			   (message "Task \"%s\" completed!" task))))))))
 
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
@@ -1614,7 +1612,7 @@ there.  If its state is DONE, update."
 	      (if (< beg end)
 		  (put-text-property beg end 'face '(:strike-through t)))))))
       (goto-char p)))
-  (save-window-excursion
+  (save-excursion (save-window-excursion
     (forward-char)
     (let ((title (habitrpg-section-title (habitrpg-current-section)))
 	  (foundFlag nil))
@@ -1638,7 +1636,7 @@ there.  If its state is DONE, update."
 			    (add-hook 'org-after-todo-state-change-hook 'habitrpg-add))
 			(org-todo 'done)))))
 	      (switch-to-buffer "*Occur*")))
-	(error "No org-mode headline with title \"%s\"" title)))))
+	(error "No org-mode headline with title \"%s\"" title))))))
 
 
 (defun habitrpg-downvote-at-point ()
@@ -1688,9 +1686,9 @@ there.  If its state is DONE, update."
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
   (cancel-function-timers 'habitrpg-upvote)
   (when (get-buffer "*habitrpg:status*")
-    (save-window-excursion
+    (save-excursion (save-window-excursion
       (with-current-buffer "*habitrpg:status*"
-	(setq header-line-format nil))))
+	(setq header-line-format nil)))))
   (lexical-let* ((tags (org-get-tags-at))
 		 (habit (car (intersection tags hrpg-tags-list :test 'equal)))
 		 (badhabit (dolist
@@ -1706,6 +1704,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 	    (badhabit
 	     (habitrpg-get-id (car badhabit)
 			      (lambda (id)
+				(when (not (string= id "nil"))
 				(setq hrpg-timer (run-at-time
 						  (cdr badhabit)
 						  hrpg-repeat-interval
@@ -1713,12 +1712,12 @@ Continuously upvote habits associated with the currently clocking task, based on
 						  id (car badhabit)
 						  "habit" "" "down"))
 				(message "Warning: Clocked into habit \"%s\""
-					 (car badhabit))))
+					 (car badhabit)))))
 	     (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
 	     (when (get-buffer "*habitrpg:status*")
-	       (save-window-excursion
-		 (with-current-buffer "*habitrpg:status*"
-		   (setq header-line-format habitrpg-header-line-string)))))))))
+	       (save-excursion (save-window-excursion
+		 (with-current-buffer "*habitrpg:status*"O
+		   (setq header-line-format habitrpg-header-line-string))))))))))
 
 
 (defun habitrpg-clock-out ()
@@ -1726,9 +1725,9 @@ Continuously upvote habits associated with the currently clocking task, based on
   (cancel-function-timers 'habitrpg-upvote)
   (setq habitrpg-header-line-string nil)
   (when (get-buffer "*habitrpg:status*")
-    (save-window-excursion
+    (save-excursion (save-window-excursion
       (with-current-buffer "*habitrpg:status*"
-	(setq header-line-format nil)))))
+	(setq header-line-format nil))))))
 
 
 (defun habitrpg-search-task-name ()
@@ -1739,7 +1738,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 (defun habitrpg-clock-in-status ()
   "Clock in to an `org-mode' task from status buffer."
   (interactive)
-  (save-window-excursion
+  (save-excursion (save-window-excursion
     (forward-char)
     (let ((title (habitrpg-section-title (habitrpg-current-section))))
       (org-occur-in-agenda-files title)
@@ -1751,7 +1750,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 	       type)
 	  (if (string= title task)
 	      (org-clock-in)
-	    (error "No org-mode headline with title \"%s\"" title)))))))
+	    (error "No org-mode headline with title \"%s\"" title))))))))
 (defun habitrpg-change-server ()
   (interactive)
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
