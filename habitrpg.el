@@ -1517,8 +1517,11 @@ there.  If its state is DONE, update."
      (deferred:nextc it
        (lambda (response)
 	 (let* ((data (request-response-data response))
-			(tasks (assoc-default 'tasks data))
-			(names (mapcar
+		(tasks (append (assoc-default 'todos data) 
+			       (assoc-default 'dailys data)
+			       (assoc-default 'habits data)
+			       '()))
+		(names (mapcar
 				(lambda (task-id)
 				  (let* ((completed (assoc-default 'completed task-id)))
 				    (when (not (stringp completed))
@@ -1532,7 +1535,7 @@ there.  If its state is DONE, update."
 					     (string= (assoc-default
 						       'text task-id)
 						      t))
-					(list (assoc-default 'text task-id) (car task-id))))) tasks))
+					(list (assoc-default 'text task-id) (assoc-default 'id task-id))))) tasks))
 			;; Completed tasks should not be upvoted, so
 			;; we should gather a list of those tasks and
 			;; set id to `completed' so the function will
@@ -1547,7 +1550,7 @@ there.  If its state is DONE, update."
 	       (progn
 		 (setq id "completed")
 		 (message "Task %S has already been done!" t))
-	     (setq id (symbol-name (car (assoc-default t names))))
+	     (setq id (car (assoc-default t names)))
 	     (message "Got id %S for task %S" id t))
 	   (funcall func id)))))))
 
