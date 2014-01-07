@@ -1459,14 +1459,17 @@ there.  If its state is DONE, update."
 				       (progn
 					 (buffer-substring beg end))))
 				 (org-back-to-heading)
-				 (if (string= id "nil")
+				 (if (and (string= id "nil") 
+					  (not (string= state "CANCELLED")))
 				     (progn
 				       (habitrpg-create type task text)
 				       (if (string= in-habit "unknown")
 					   (org-entry-put (point) "IN_HABITRPG" "yes")))
 				   (if (string= in-habit "unknown")
 				       (org-entry-put (point) "IN_HABITRPG" "yes"))))))))
-			 (when (and (equal last-done-day (reverse (butlast (calendar-current-date)))) (not (string= state "DONE")))
+			 (when (and (equal last-done-day 
+					   (reverse (butlast (calendar-current-date))))
+				    (not (string= state "DONE")))
 			   (habitrpg-upvote id)
 			   (message "Task \"%s\" completed!" task))
 			 (when (string= state "DONE")
