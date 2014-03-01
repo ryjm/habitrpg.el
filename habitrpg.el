@@ -1195,6 +1195,7 @@ TITLE is the displayed title of the section."
 				  (let* ((tasks (append (assoc-default 'todos data) 
 							(assoc-default 'dailys data)
 							(assoc-default 'habits data)
+							(assoc-default 'rewards data)
 							'()))
 					 (items (assoc-default 'items data))
 					 (eggs (assoc-default 'eggs items))
@@ -1230,7 +1231,20 @@ TITLE is the displayed title of the section."
 									(number-to-string value)
 								      value)
 								    "\n")
-							  (insert "value: 0\n")))))))))
+							  (insert "value: 0\n")))))))
+
+					 (eggnames (dotimes (i (length eggs))
+						     (let ((egg (nth i eggs)))
+						       (insert (concat "type: egg " (symbol-name (car egg)) " Egg"
+								       " id: 0" " value: 0" "\n")))))
+					 (potnames (dotimes (i (length potions))
+						     (let ((pot (nth i potions)))
+						       (insert (concat "type: potion " (symbol-name (car pot))
+								       " id: 0" " value: 0" "\n")))))
+					 (petnames (dotimes (i (length pets))
+						     (let ((pet (nth i pets)))
+						       (insert (concat "type: pet " (symbol-name (car pet))
+								       " id: 0" " value: 0" "\n")))))))
 				  (sort-numeric-fields -1 (point-min) (point-max)))))))
 
 
@@ -1408,7 +1422,9 @@ With a prefix argument, kill the buffer instead."
        ((string= in-habit "yes")
 	(habitrpg-add))
        ((string= in-habit "no")
-	t)))))
+	t)
+       ((not in-habit)
+	(habitrpg-add))))))
   (ad-activate 'org-store-log-note))
 
 (defun habitrpg-add ()
