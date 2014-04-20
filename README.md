@@ -30,7 +30,7 @@ Clone this repo: `git clone https://github.com/ryjm/habitrpg.el`
 
 Add to your .emacs (if you used the install script the path will be in .emacs.d):
 
-    (add-to-list 'load-path "path/to/repo/habitrpg.el")
+    (add-to-list 'load-path "path/to/repo/")
 	(require 'habitrpg)
     (setq habitrpg-api-user "ID-HERE")
     (setq habitrpg-api-token "TOKEN-HERE")
