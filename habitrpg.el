@@ -274,6 +274,10 @@ This is an alist where each element is of the
   form (HABIT . TIME), where TIME is a string (like \"1 hour\")
   specifying when we should start downvoting this habit.")
 
+(defvar hrpg-to-upvote-ids nil
+  "List of IDs that need to be upvoted.")
+(defvar hrpg-to-add nil
+  "List of tasks that need to be added.")
 (defvar habitrpg-refresh-function nil)
 (make-variable-buffer-local 'habitrpg-refresh-function)
 (put 'habitrpg-refresh-function 'permanent-local t)
@@ -1428,11 +1432,27 @@ With a prefix argument, kill the buffer instead."
 	(habitrpg-add))))))
   (ad-activate 'org-store-log-note))
 
+(defun habitrpg-do-backlog ()
+  (interactive)
+    (when hrpg-to-add
+      (message "HabitRPG: Getting task backlog.")
+      (dolist (queued-task hrpg-to-add)
+	(setq hrpg-to-add (cl-delete queued-task hrpg-to-add))
+	(habitrpg-get-id queued-task
+			 (lambda (id)
+			   (if (and (string= id "nil"))
+				    (habitrpg-create "todo" queued-task ""))))))
+  (when hrpg-to-upvote-ids
+    (message "HabitRPG: Completing task backlog.")
+    (dolist (task-id hrpg-to-upvote-ids)
+      (cl-delete task-id hrpg-to-upvote-ids)
+      (habitrpg-upvote task-id))))
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline add TASK if it isn't already
 there.  If its state is DONE, update."
   (interactive)
+  (habitrpg-do-backlog)
   (save-excursion (save-window-excursion
     (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
     (lexical-let* ((task (nth 4 (org-heading-components)))
@@ -1527,80 +1547,89 @@ there.  If its state is DONE, update."
 
 (defun habitrpg-get-id (task func)
   (lexical-let ((t task) (func func))
-  (deferred:$
-    (request-deferred
-     (concat habitrpg-api-url "/user")
-     :headers `(("Accept" . "application/json")
-		("X-API-User" . ,habitrpg-api-user)
-		("X-API-Key" . ,habitrpg-api-token))
-     :parser 'json-read)
-     (deferred:nextc it
-       (lambda (response)
-	 (let* ((data (request-response-data response))
-		(tasks (append (assoc-default 'todos data) 
-			       (assoc-default 'dailys data)
-			       (assoc-default 'habits data)
-			       '()))
-		(names (mapcar
-				(lambda (task-id)
-				  (let* ((completed (assoc-default 'completed task-id)))
-				    (when (not (stringp completed))
-				      (setq completed (symbol-name completed)))
-				      (when (and
-					     (or
-					      (string= completed "False")
-					      (string= completed ":json-false")
-					      (string=
-					       (assoc-default 'type task-id) "habit"))
-					     (string= (assoc-default
-						       'text task-id)
-						      t))
-					(list (assoc-default 'text task-id) (assoc-default 'id task-id))))) tasks))
-			;; Completed tasks should not be upvoted, so
-			;; we should gather a list of those tasks and
-			;; set id to `completed' so the function will
-			;; know. The tasks which are completed are
-			;; those that are in `tasks' but not in `names'
-			(cnames (mapcar
-				 (lambda (task-id)
-				   (let* ((name (assoc-default 'text task-id)))
-				     (when (not (assoc-default name names))
-				       (list name (car task-id))))) tasks)))
-	   (if (assoc-default t cnames)
-	       (progn
-		 (setq id "completed")
-		 (message "Task %S has already been done!" t))
-	     (setq id (car (assoc-default t names)))
-	     (message "Got id %S for task %S" id t))
-	   (funcall func id)))))))
+    (deferred:$
+      (request-deferred
+       (concat habitrpg-api-url "/user")
+       :headers `(("Accept" . "application/json")
+		  ("X-API-User" . ,habitrpg-api-user)
+		  ("X-API-Key" . ,habitrpg-api-token))
+       :parser 'json-read
+       :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+			    (message "HabitRPG: Error in getting id for task [%s]" t))))
+      (deferred:nextc it
+	(lambda (response)
+	  (if (request-response-error-thrown response)
+	      (progn
+		(message "HabitRPG: Error in getting id for task [%s]" t)
+		(setq hrpg-to-add (cl-adjoin t hrpg-to-add)))
+	    (let* ((data (request-response-data response))
+		   (tasks (append (assoc-default 'todos data) 
+				  (assoc-default 'dailys data)
+				  (assoc-default 'habits data)
+				  '()))
+		   (names (mapcar
+			   (lambda (task-id)
+			     (let* ((completed (assoc-default 'completed task-id)))
+			       (when (not (stringp completed))
+				 (setq completed (symbol-name completed)))
+			       (when (and
+				      (or
+				       (string= completed "False")
+				       (string= completed ":json-false")
+				       (string=
+					(assoc-default 'type task-id) "habit"))
+				      (string= (assoc-default
+						'text task-id)
+					       t))
+				 (list (assoc-default 'text task-id) (assoc-default 'id task-id))))) tasks))
+		   ;; Completed tasks should not be upvoted, so
+		   ;; we should gather a list of those tasks and
+		   ;; set id to `completed' so the function will
+		   ;; know. The tasks which are completed are
+		   ;; those that are in `tasks' but not in `names'
+		   (cnames (mapcar
+			    (lambda (task-id)
+			      (let* ((name (assoc-default 'text task-id)))
+				(when (not (assoc-default name names))
+				  (list name (car task-id))))) tasks)))
+	      (if (assoc-default t cnames)
+		  (progn
+		    (setq id "completed")
+		    (message "Task %S has already been done!" t))
+		(setq id (car (assoc-default t names)))
+		(message "Got id %S for task %S" id t))
+	      (funcall func id))))))))
 
 
 (defun habitrpg-upvote (id &optional task type text direction)
   (lexical-let ((direction direction) (task task))
-  (request
-   (concat habitrpg-api-url "/user/tasks/" id "/"
-	   (unless direction "up") direction)
-   :type "POST"
-   :headers `(("Content-Type" . "application/json")
-	      ("Content-Length" . 0)
-	      ("X-API-User" . ,habitrpg-api-user)
-	      ("X-API-Key" . ,habitrpg-api-token))
-   :parser 'json-read
-   :success (function* (lambda (&key data &allow-other-keys)
-			 (if hrpg-status-to-file
-			     (with-temp-file "~/tmp/hrpg-status"
-			       (let* ((exp (assoc-default 'exp data))
-				      (gp (assoc-default 'gp data))
-				      (hp (assoc-default 'hp data))
-				      (lvl (assoc-default 'lvl data)))
-				 (insert (concat "exp: " (number-to-string (truncate exp))
-						 " gp: " (number-to-string (truncate gp))
-						 " hp: " (number-to-string (truncate hp))
-						 " lvl: " (number-to-string (truncate lvl)))))))
-			 (cond ((string= direction "down")
-				(message "Health lost for habit %s" task))
-			       ((not (string= direction "up"))
-				(message "Experience gained!"))))))))
+    (request
+     (concat habitrpg-api-url "/user/tasks/" id "/"
+	     (unless direction "up") direction)
+     :type "POST"
+     :headers `(("Content-Type" . "application/json")
+		("Content-Length" . 0)
+		("X-API-User" . ,habitrpg-api-user)
+		("X-API-Key" . ,habitrpg-api-token))
+     :parser 'json-read
+     :success (function* (lambda (&key data &allow-other-keys)
+			   (if hrpg-status-to-file
+			       (with-temp-file "~/tmp/hrpg-status"
+				 (let* ((exp (assoc-default 'exp data))
+					(gp (assoc-default 'gp data))
+					(hp (assoc-default 'hp data))
+					(lvl (assoc-default 'lvl data)))
+				   (insert (concat "exp: " (number-to-string (truncate exp))
+						   " gp: " (number-to-string (truncate gp))
+						   " hp: " (number-to-string (truncate hp))
+						   " lvl: " (number-to-string (truncate lvl)))))))
+			   (cond ((string= direction "down")
+				  (message "Health lost for habit %s" task))
+				 ((not (string= direction "up"))
+				  (message "Experience gained!")))))
+     :error (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+			 (message "HabitRPG: Error in completing [%s]" id)
+			 (setq hrpg-to-upvote-ids (cl-adjoin id hrpg-to-upvote-ids)))))))
 
 (defun habitrpg-get-id-at-point ()
   (let ((id (cdr (car (habitrpg-section-info (habitrpg-current-section))))))
