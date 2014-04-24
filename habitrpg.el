@@ -1445,7 +1445,7 @@ With a prefix argument, kill the buffer instead."
   (when hrpg-to-upvote-ids
     (message "HabitRPG: Completing task backlog.")
     (dolist (task-id hrpg-to-upvote-ids)
-      (cl-delete task-id hrpg-to-upvote-ids)
+      (setq hrpg-to-upvote-ids (cl-delete task-id hrpg-to-upvote-ids))
       (habitrpg-upvote task-id))))
 (defun habitrpg-add ()
   "Add to habitrpg.
