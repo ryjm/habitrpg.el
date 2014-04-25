@@ -347,6 +347,7 @@ The function is given one argument, the status buffer."
   (habitrpg-refresh-buffer))
 
 (defun habitrpg-refresh-status ()
+  (habitrpg-do-backlog)
   (setq header-line-format habitrpg-header-line-string)
   (habitrpg-create-buffer-sections
     (habitrpg-with-section 'status nil
