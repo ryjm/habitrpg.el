@@ -322,6 +322,10 @@ The function is given one argument, the status buffer."
                                  (length heading))) ?\ )
           info-string "\n"))
 
+;;
+;; HabitRPG Status Buffer
+;;
+
 ;;;###autoload
 (defun habitrpg-status ()
   (interactive)
@@ -663,97 +667,6 @@ See `habitrpg-insert-section' for meaning of the arguments"
        (habitrpg-propertize-section habitrpg-top-section)
        (habitrpg-section-set-hidden habitrpg-top-section
                                  (habitrpg-section-hidden habitrpg-top-section)))))
-
-(defmacro habitrpg-section-case (head &rest clauses)
-  "Choose among clauses depending on the current section.
-
-Each clause looks like (SECTION-TYPE BODY...).  The current
-section is compared against SECTION-TYPE; the corresponding
-BODY is evaluated and it's value returned.  If no clause
-succeeds return nil.
-
-SECTION-TYPE is a list of symbols identifying a section and it's
-section context; beginning with the most narrow section.  Whether
-a clause succeeds is determined using `habitrpg-section-match'.
-A SECTION-TYPE of t is allowed only in the final clause, and
-matches if no other SECTION-TYPE matches.
-
-While evaluating the selected BODY SECTION is dynamically bound
-to the current section and INFO to information about this
-section (see `habitrpg-section-info').
-
-\(fn (SECTION INFO) (SECTION-TYPE BODY...)...)"
-  (declare (indent 1))
-  (let ((section (car head))
-        (info (cadr head)))
-    `(let* ((,section (habitrpg-current-section))
-            (,info (and ,section (habitrpg-section-info ,section))))
-       (cond ,@(mapcar (lambda (clause)
-                         (let ((condition (car clause)))
-                           `(,(if (eq condition t) t
-                                `(habitrpg-section-match ',condition ,section))
-                             ,@(cdr clause))))
-                       clauses)))))
-
-(defconst habitrpg-section-action-success
-  (make-symbol "habitrpg-section-action-success"))
-
-(defmacro habitrpg-section-action (head &rest clauses)
-  "Choose among action clauses depending on the current section.
-
-Like `habitrpg-section-case' (which see) but if no CLAUSE succeeds
-try additional CLAUSES added with `habitrpg-add-action-clauses'.
-Return the value of BODY of the clause that succeeded.
-
-Each use of `habitrpg-section-action' should use an unique OPNAME.
-
-\(fn (SECTION INFO OPNAME) (SECTION-TYPE BODY...)...)"
-  (declare (indent 1))
-  (let ((opname (make-symbol "*opname*"))
-        (value (make-symbol "*value*"))
-        (disallowed (car (or (assq t clauses)
-                             (assq 'otherwise clauses)))))
-    (when disallowed
-      (error "%s is an invalid section type" disallowed))
-    `(habitrpg-with-refresh
-       (let* ((,opname ,(car (cddr head)))
-              (,value
-               (habitrpg-section-case ,(butlast head)
-                 ,@clauses
-                 ((run-hook-with-args-until-success
-                   ',(intern (format "habitrpg-%s-action-hook" opname))))
-                 (t
-                  (let* ((section (habitrpg-current-section))
-                         (type (and section (habitrpg-section-type section))))
-                    (if type
-                        (error "Can't %s a %s" ,opname
-                               (or (get type 'habitrpg-description) type))
-                      (error "Nothing to %s here" ,opname)))))))
-         (unless (eq ,value habitrpg-section-action-success)
-           ,value)))))
-
-(defmacro habitrpg-add-action-clauses (head &rest clauses)
-  "Add additional clauses to the OPCODE section action.
-
-Add to the section action with the same OPNAME additional
-CLAUSES.  If none of the default clauses defined using
-`habitrpg-section-action' succeed try the clauses added with this
-function (which can be used multiple times with the same OPNAME).
-
-See `habitrpg-section-case' for more information on SECTION, INFO
-and CLAUSES.
-
-\(fn (SECTION INFO OPNAME) (SECTION-TYPE BODY...)...)"
-  (declare (indent 1))
-  `(add-hook ',(intern (format "habitrpg-%s-action-hook" (car (cddr head))))
-             (lambda ()
-               ,(macroexpand
-                 `(habitrpg-section-case ,(butlast head)
-                    ,@(mapcar (lambda (clause)
-                                `(,(car clause)
-                                  (or (progn ,@(cdr clause))
-                                      habitrpg-section-action-success)))
-                              clauses))))))
 
 (defun habitrpg-find-section (path top)
   "Find the section at the path PATH in subsection of section TOP."
@@ -1383,17 +1296,6 @@ Return a value between 0 and 1."
         (b (* (string-to-number (match-string-no-properties 3 color)) 255.0)))
     (format "#%02X%02X%02X" r g b)))
 
-;; (let ((status-text (cl-case status ; task title
-;;    ((old)
-;;     (format "Old   %s" task-name))
-;;    ((new)
-;;     (format "New        %s" task-name))
-;;    ((priority)
-;;     (format "priority %s" task-name))
-;;    (t
-;;     (format "?          %s" task-name)))))
-;; (insert (make-string magit-indentation-level ?\t) status-text "\n")))
-
 (defun habitrpg-goto-line (line)
   "Like `goto-line' but doesn't set the mark."
   (save-restriction
@@ -1469,7 +1371,6 @@ there.  If its state is DONE, update."
 				     (org-habit-done-dates (org-habit-parse-todo)) '>))))) 4)))
 	  type)
 
-	
       (habitrpg-get-id task
 		       (lambda (id)
 			 (save-excursion (save-window-excursion
@@ -1732,8 +1633,6 @@ there.  If its state is DONE, update."
 	      (put-text-property beg end 'invisible t))))
       (habitrpg-set-section-needs-refresh-on-show t (habitrpg-section-parent section)))))
 
-
-
 (defun habitrpg-clock-in ()
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
@@ -1806,6 +1705,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 	  (if (string= title task)
 	      (org-clock-in)
 	    (error "No org-mode headline with title \"%s\"" title))))))))
+
 (defun habitrpg-change-server ()
   (interactive)
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
