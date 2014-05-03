@@ -1360,13 +1360,14 @@ With a prefix argument, kill the buffer instead."
 	(setq hrpg-to-add (cl-delete queued-task hrpg-to-add))
 	(habitrpg-get-id queued-task
 			 (lambda (id)
-			   (if (and (string= id "nil"))
-				    (habitrpg-create "todo" queued-task ""))))))
+			   (when (string= id "nil")
+			     (habitrpg-create "todo" queued-task ""))))))
   (when hrpg-to-upvote-ids
     (message "HabitRPG: Completing task backlog.")
     (dolist (task-id hrpg-to-upvote-ids)
       (setq hrpg-to-upvote-ids (cl-delete task-id hrpg-to-upvote-ids))
       (habitrpg-upvote task-id))))
+
 (defun habitrpg-add ()
   "Add to habitrpg.
 With point on an `org-mode' headline add TASK if it isn't already
