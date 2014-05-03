@@ -1120,29 +1120,38 @@ TITLE is the displayed title of the section."
 					 (potions (assoc-default 'hatchingPotions items))
 					 (pets (assoc-default 'pets items))
 					 (names (dolist (task-id tasks)
-						  (if (and (string= (assoc-default 'completed task-id) "t")
-							   (not (string= (assoc-default 'type task-id) "todo")))
-						      (progn
-							(insert (concat "type: "
-									(assoc-default 'type task-id) " " "COMPLETED "
-									(assoc-default 'text task-id) " "
+						  (let* ((completed (assoc-default 'completed task-id))
+							 (type (assoc-default 'type task-id))
+							 (text (assoc-default 'text task-id))
+							 (id (assoc-default 'id task-id))
+							 (value (assoc-default 'value task-id))
+							 (notes (if (string= "" (assoc-default 'notes task-id))
+								    "0"
+								  (assoc-default 'notes task-id))))
+						
+						    (if (and (string= completed "t")
+							     (not (string= type "todo")))
+							(progn
+							  (insert (concat "type: "
+									type " " "COMPLETED "
+									text " "
 									"id: "
-									(assoc-default 'id task-id) " "))
-							(let* ((value (assoc-default 'value task-id)))
+									id " "
+									"notes: " notes " "))
 							  (if value
 							      (insert "value: "
 								      (if (numberp value)
 									  (number-to-string value)
 									value)
 								      "\n")
-							    (insert "value: 0\n"))))
-						    (unless (string= (assoc-default 'completed task-id) "t")
+							    (insert "value: 0\n")))
+						    (unless (string= completed "t")
 						      (insert (concat "type: "
-								      (assoc-default 'type task-id) " "
-								      (assoc-default 'text task-id) " "
+								      type " "
+								      text " "
 								      "id: "
-								      (assoc-default 'id task-id) " "))
-						      (let* ((value (assoc-default 'value task-id)))
+								      id " "
+								      "notes: " notes " "))
 							(if value
 							    (insert "value: "
 								    (if (numberp value)
@@ -1154,16 +1163,15 @@ TITLE is the displayed title of the section."
 					 (eggnames (dotimes (i (length eggs))
 						     (let ((egg (nth i eggs)))
 						       (insert (concat "type: egg " (symbol-name (car egg)) " Egg"
-								       " id: 0" " value: 0" "\n")))))
+								       " id: 0" " notes: 0" " value: 0" "\n")))))
 					 (potnames (dotimes (i (length potions))
 						     (let ((pot (nth i potions)))
 						       (insert (concat "type: potion " (symbol-name (car pot))
-								       " id: 0" " value: 0" "\n")))))
+								       " id: 0" " notes: 0" " value: 0" "\n")))))
 					 (petnames (dotimes (i (length pets))
 						     (let ((pet (nth i pets)))
 						       (insert (concat "type: pet " (symbol-name (car pet))
-								       " id: 0" " value: 0" "\n")))))))
-				  (sort-numeric-fields -1 (point-min) (point-max)))))))
+								       " id: 0" " notes: 0" " value: 0" "\n"))))))))))))
 
 
 (habitrpg-define-inserter habits ()
@@ -1191,16 +1199,18 @@ TITLE is the displayed title of the section."
     (habitrpg-wash-sequence #'habitrpg-wash-task))
 
 (defun habitrpg-wash-task ()
-  (if (looking-at "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\) value: \\(.*\\)")
+  (delete-blank-lines)
+  (if (looking-at "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\) notes: \\([[:ascii:][:nonascii:]]+?\\) value: \\(.*\\)")
       (let ((type (match-string-no-properties 1))
 	    (task-name (match-string-no-properties 2))
 	    (task-id (match-string-no-properties 3))
-	    (value (match-string-no-properties 4))
+	    (notes (match-string-no-properties 4))
+	    (value (match-string-no-properties 5))
 	    (parent section-title))
 	(if (string= type parent)
 	    (let ((habitrpg-section-hidden-default t))
 	      (habitrpg-with-section task-name 'tasks
-		(delete-region (point) (+ (line-end-position) 1))
+		(delete-region (point) (match-end 0))
 		(let ((p (point))	;task info
 		      (color (habitrpg-task-color value))
 		      (done nil))
@@ -1227,18 +1237,25 @@ TITLE is the displayed title of the section."
 			 (propertize value 'face 'habitrpg-gold)
 		       "") "\n")
 		    (unless (string= task-id "0")
-		      (habitrpg-insert-info task-id))
+		      (habitrpg-insert-info task-id notes))
 		    (goto-char (point-max))))
 		(habitrpg-set-section-info `((,task-name . ,task-id) ("value" . value)))))
-	    (delete-region (point) (+ (line-end-position) 1)))
+	  (delete-region (point) (match-end 0)))
 	t)
     (forward-line)))
 
-(defun habitrpg-insert-info (task-id)
-  (habitrpg-with-section nil 'info
+
+
+(defun habitrpg-insert-info (task-id notes)
+  (habitrpg-with-section nil 'notes
+    (insert (propertize "[Notes]\n" 'face 'font-lock-comment-face))
+    (insert (propertize (concat notes "\n") 'face 'font-lock-keyword-face))
+    (goto-char (point-max)))
+  (habitrpg-with-section nil 'id
     (insert (propertize "[ID]\n" 'face 'font-lock-comment-face))
     (insert (propertize (concat task-id "\n") 'face 'font-lock-keyword-face))
     (goto-char (point-max))))
+
 
 (defun habitrpg-wash-sequence (func)
   "Run FUNC until end of buffer is reached.
@@ -1385,18 +1402,10 @@ there.  If its state is DONE, update."
 				((member "hrpgreward" (org-get-tags-at))
 				 (setq type "reward"))
 				(t (setq type "todo")))
-			       (let* ((beg
+			       (let ((text
 				       (progn
 					 (org-back-to-heading)
-					 (forward-line 1)
-					 (point)))
-				      (end
-				       (progn
-					 (org-end-of-subtree)
-					 (point)))
-				      (text
-				       (progn
-					 (buffer-substring beg end))))
+					 (org-agenda-get-some-entry-text (point-marker) 20))))
 				 (org-back-to-heading)
 				 (if (and (string= id "nil") 
 					  (not (string= state "CANCELLED")))
