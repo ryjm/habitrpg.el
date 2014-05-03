@@ -1710,7 +1710,8 @@ Continuously upvote habits associated with the currently clocking task, based on
   (interactive)
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
       (setq habitrpg-api-url "https://www.habitrpg.com/api/v1")
-    (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1")))
+    (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1"))
+  (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
 (provide 'habitrpg)
 (require 'habitrpg-key-mode)
