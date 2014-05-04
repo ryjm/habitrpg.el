@@ -1653,11 +1653,12 @@ Continuously upvote habits associated with the currently clocking task, based on
 	(setq header-line-format nil)))))
   (lexical-let* ((tags (org-get-tags-at))
 		 (habit (car (intersection tags hrpg-tags-list :test 'equal)))
-		 (badhabit (unless (not hrpg-bad-tags-list)
+		 (bad (unless (not hrpg-bad-tags-list)
 			     (mapcar
 			      (lambda (tag)
-				(car (assoc tag hrpg-bad-tags-list)))
-			      tags))))
+				(assoc tag hrpg-bad-tags-list))
+			      tags)))
+		 (badhabit (car bad)))
     (when tags
       (cond (habit
 	     (habitrpg-get-id habit
@@ -1680,7 +1681,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 	     (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
 	     (when (get-buffer "*habitrpg:status*")
 	       (save-excursion (save-window-excursion
-		 (with-current-buffer "*habitrpg:status*"O
+		 (with-current-buffer "*habitrpg:status*"
 		   (setq header-line-format habitrpg-header-line-string))))))))))
 
 
