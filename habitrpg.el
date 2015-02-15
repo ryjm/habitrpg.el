@@ -1642,7 +1642,7 @@ there.  If its state is DONE, update."
 	   (type (habitrpg-section-title (habitrpg-section-parent section))))
       (when id
 	(request
-	 (concat habitrpg-api-url "/user/task/" id)
+	 (concat habitrpg-api-url "/user/tasks/" id)
 	 :type "DELETE"
 	 :headers `(("Content-Type" . "application/json")
 		    ("X-API-User" . ,habitrpg-api-user)
