@@ -1428,7 +1428,7 @@ there.  If its state is DONE, update."
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
   (request
-     (concat habitrpg-api-url "/user/task/")
+     (concat habitrpg-api-url "/user/tasks/")
      :type "POST"
      :headers `(("Accept" . "application/json")
 		("X-API-User" . ,habitrpg-api-user)
