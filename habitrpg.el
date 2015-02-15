@@ -1457,6 +1457,25 @@ there.  If its state is DONE, update."
 (defvar hrpg-id nil "ID for a habitrpg task.")
 (defvar hrpg-task nil "Habitrpg task.")
 
+(defun habitrpg-revive ()
+  (deferred:$
+      (request-deferred
+       (concat habitrpg-api-url "/user/revive")
+       :type "POST"
+       :headers `(("Content-Type" . "application/json")
+		  ("Content-Length" . 0)
+		  ("X-API-User" . ,habitrpg-api-user)
+		  ("X-API-Key" . ,habitrpg-api-token))
+       :parser 'json-read
+       :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+			    (message "HabitRPG: Error in getting id for task [%s]" t))))
+      (deferred:nextc it
+	(lambda (response)
+	  (if (request-response-error-thrown response)
+	      (progn
+		(message "HabitRPG: Error reviving")))))))
+  
+
 (defun habitrpg-get-id (task func)
   (lexical-let ((t task) (func func))
     (deferred:$
