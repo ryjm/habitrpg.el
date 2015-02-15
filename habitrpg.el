@@ -122,7 +122,7 @@
   :prefix "habitrpg-"
   :group 'tools)
 
-(defcustom habitrpg-api-url "https://habitrpg.com/api/v1"
+(defcustom habitrpg-api-url "https://habitrpg.com/api/v2"
   "API url."
   :group 'habitrpg)
 (defcustom habitrpg-api-user nil
@@ -1722,6 +1722,13 @@ Continuously upvote habits associated with the currently clocking task, based on
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
       (setq habitrpg-api-url "https://www.habitrpg.com/api/v1")
     (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1"))
+  (message "HabitRPG api URL changed to %s" habitrpg-api-url))
+
+(defun habitrpg-change-api-version ()
+  (interactive)
+  (if (string= habitrpg-api-url "https://www.habitrpg.com/api/v1")
+      (setq habitrpg-api-url "https://www.habitrpg.com/api/v2")
+    (setq habitrpg-api-url "https://www.habitrpg.com/api/v1"))
   (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
 (provide 'habitrpg)
