@@ -50,6 +50,7 @@ keymaps as they're requested.")
 (defvar habitrpg-key-mode-groups
   '((manage
      (actions
+      ("r" "Revive" habitrpg-revive)
       ("n" "Add" habitrpg-new-task)
       ("d" "Delete" habitrpg-delete-at-point))
       (switches
