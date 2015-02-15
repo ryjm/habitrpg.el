@@ -1658,7 +1658,7 @@ Continuously upvote habits associated with the currently clocking task, based on
 			      (lambda (tag)
 				(assoc tag hrpg-bad-tags-list))
 			      tags)))
-		 (badhabit (car bad)))
+		 (badhabit (car (remove nil bad))))
     (when tags
       (cond (habit
 	     (habitrpg-get-id habit
