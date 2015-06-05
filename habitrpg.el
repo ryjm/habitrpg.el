@@ -1610,25 +1610,27 @@ there.  If its state is DONE, update."
 	 (p (point)))
     (save-excursion
       (end-of-visible-line)
-      (if (or (string= type "reward") (string= type "store"))
-	  (if (> (string-to-number (assoc-default "value" info)) current-gp)  
-	      (message "Not enough gold to purchase: %s"
-		       (if (string= type "store")
-			   id
-			 (car (car info))))
-	    (habitrpg-upvote id nil type)
-	    (progn
-	      (goto-char p))
-	    (let ((inhibit-read-only t))
-	      (let ((beg (save-excursion
-			   (beginning-of-line)
-			   (forward-char)
+      (if (or (string= type "reward") (string= type "store")
+	      (string= type "potion") (string= type "egg") (string= type "stable"))
+	  (cond ((or (string= type "store") (string= type "reward"))
+		 (if (> (string-to-number (assoc-default "value" info)) current-gp)  
+		     (message "Not enough gold to purchase: %s"
+			      (if (string= type "store")
+				  id
+				(car (car info))))
+		   (habitrpg-upvote id nil type))))
+	(progn
+	  (goto-char p))
+	(let ((inhibit-read-only t))
+	  (let ((beg (save-excursion
+		       (beginning-of-line)
+		       (forward-char)
 			   (point)))
 		    (end (progn
 			   (end-of-line)
 			   (point))))
 		(if (< beg end)
-		    (put-text-property beg end 'face '(:inverse-video t))))))
+		    (put-text-property beg end 'face '(:inverse-video t)))))
       (goto-char p)
       (progn
 	(habitrpg-upvote id)
@@ -1651,7 +1653,8 @@ there.  If its state is DONE, update."
 		(if (< beg end)
 		    (put-text-property beg end 'face '(:strike-through t)))))))
 	(goto-char p))))
-  (unless (or (string= type "reward") (string= type "store"))
+    (unless (or (string= type "reward") (string= type "store")
+		(string= type "potion") (string= type "egg") (string= type "stable"))
     (save-excursion (save-window-excursion
 		      (forward-char)
 		      (let ((title (habitrpg-section-title (habitrpg-current-section)))
