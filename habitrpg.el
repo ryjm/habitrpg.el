@@ -1406,14 +1406,19 @@ there.  If its state is DONE, update."
 		    (lexical-let* ((task (nth 4 (org-heading-components)))
 				   (state (nth 2 (org-heading-components)))
 				   (in-habit (org-entry-get-with-inheritance "IN_HABITRPG"))
+				   (last-done-string (car (sort 
+							   (org-habit-done-dates
+							    (org-habit-parse-todo))
+							   '>)))
 				   (last-done-day 
-				    (if (member "hrpgdaily" (org-get-tags-at))
+				    (if (and (member "hrpgdaily" (org-get-tags-at))
+					     last-done-string)
 					(butlast
 					 (nthcdr 3
 						 (decode-time 
-						  (days-to-time 
-						   (car (sort 
-							 (org-habit-done-dates (org-habit-parse-todo)) '>))))) 4)))
+						  (days-to-time last-done-string
+								))) 4)
+				      nil))
 				   type)
 
 		      (habitrpg-get-id task
