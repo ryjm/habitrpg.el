@@ -1497,11 +1497,11 @@ there.  If its state is DONE, update."
      (concat habitica-api-url "/user/revive")
      :type "POST"
      :headers `(("Content-Type" . "application/json")
-		("Content-Length" . 0)
+
 		("X-API-User" . ,habitica-api-user)
 		("X-API-Key" . ,habitica-api-token))
      :parser 'json-read
-     :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+     :error  (function* (lambda (&key error-thrown &allow-other-keys)
 			  (message "Habitica: Error in getting id for task [%s]" t))))
     (deferred:nextc it
       (lambda (response)
@@ -1518,7 +1518,7 @@ there.  If its state is DONE, update."
 		  ("X-API-User" . ,habitica-api-user)
 		  ("X-API-Key" . ,habitica-api-token))
        :parser 'json-read
-       :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+       :error  (function* (lambda (&key error-thrown &allow-other-keys)
 			    (message "Habitica: Error in getting id for task [%s]" t))))
       (deferred:nextc it
 	(lambda (response)
@@ -1574,7 +1574,7 @@ there.  If its state is DONE, update."
 	       (unless direction "up") direction))
      :type "POST"
      :headers `(("Content-Type" . "application/json")
-		("Content-Length" . 0)
+
 		("X-API-User" . ,habitica-api-user)
 		("X-API-Key" . ,habitica-api-token))
      :parser 'json-read
@@ -1595,7 +1595,7 @@ there.  If its state is DONE, update."
 				  (message "Health lost for habit %s" task))
 				 ((not (string= direction "up"))
 				  (message "Experience gained!")))))
-     :error (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+     :error (function* (lambda (&key error-thrown &allow-other-keys)
 			 (message "Habitica: Error in completing [%s]" id)
 			 (setq hrpg-to-upvote-ids (cl-adjoin id hrpg-to-upvote-ids)))))))
 
