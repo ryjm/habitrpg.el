@@ -1,4 +1,4 @@
-;;; habitrpg.el --- org-mode interface to habitrpg
+;;; habitrpg.el --- org-mode interface to habitica
 
 ;; Copyright (C) 2013
 
@@ -23,9 +23,9 @@
 
 ;; habitrpg.el ===============
 ;;
-;; Integrate org-mode and habitrpg.  Very much a work in progress.  Adds
-;; a task to habitrpg.com after a TODO state change in org-mode or by
-;; calling the function `habitrpg-add`.
+;; Integrate org-mode and habitica.  Very much a work in progress.  Adds
+;; a task to habitica.com after a TODO state change in org-mode or by
+;; calling the function `habitica-add`.
 ;;
 ;; Tag (in org-mode) your habits and dailys with `hrpghabit`,
 ;; `hrpgdaily`, and `hrpgreward` to get them in the corresponding
@@ -57,21 +57,21 @@
 ;; in .emacs.d):
 ;;
 ;;     (add-to-list 'load-path "path/to/repo/habitrpg.el") (setq
-;;     habitrpg-api-user "ID-HERE") (setq habitrpg-api-token
+;;     habitica-api-user "ID-HERE") (setq habitica-api-token
 ;;     "TOKEN-HERE")
 ;;
 ;; Add this hook if you want a DONE task to be marked as complete and
-;; a todo state change to add a task to habitrpg.com
+;; a todo state change to add a task to habitica.com
 ;;
-;;      (add-hook 'org-after-todo-state-change-hook 'habitrpg-add
+;;      (add-hook 'org-after-todo-state-change-hook 'habitica-add
 ;;      'append)
 ;;
 ;; Add keybindings.
 ;;
-;;     (global-set-key (kbd "C-c C-x h") 'habitrpg-add)
-;;      (global-set-key (kbd "<f9> a") 'habitrpg-status)
+;;     (global-set-key (kbd "C-c C-x h") 'habitica-add)
+;;      (global-set-key (kbd "<f9> a") 'habitica-status)
 ;;
-;; You can then bring up the habitrpg buffer with `<f9> a`, and do
+;; You can then bring up the habitica buffer with `<f9> a`, and do
 ;; `C-h m` to see the keybindings.
 ;;
 ;; ![buffer](http://i.imgur.com/M5EfSkd.png)
@@ -81,8 +81,8 @@
 ;;
 ;; If you want to use the clocking feature:
 ;;
-;;      (add-hook 'org-clock-in-hook 'habitrpg-clock-in) (add-hook
-;;      'org-clock-out-hook 'habitrpg-clock-out)
+;;      (add-hook 'org-clock-in-hook 'habitica-clock-in) (add-hook
+;;      'org-clock-out-hook 'habitica-clock-out)
 ;;
 ;; and set the variable `hrpg-tags-list` to the habits you want to
 ;; associate with the clocked task.
@@ -95,7 +95,7 @@
 ;; Most of the code for the status buffer was taken from the Magit
 ;;project.  I really like the way they set up the sections, it's very
 ;;modular so you can add different sections easily.  This will be
-;;useful for when habitrpg gets more features.
+;;useful for when habitica gets more features.
 ;;; Code:
 
 
@@ -117,76 +117,76 @@
   (unless (fboundp 'declare-function)
     (defmacro declare-function (&rest args))))
 
-(defgroup habitrpg nil
-  "Controlling habitrpg from Emacs."
-  :prefix "habitrpg-"
+(defgroup habitica nil
+  "Controlling habitica from Emacs."
+  :prefix "habitica-"
   :group 'tools)
 
-(defcustom habitrpg-api-url "https://habitrpg.com/api/v2"
+(defcustom habitica-api-url "https://habitica.com/api/v2"
   "API url."
-  :group 'habitrpg)
-(defcustom habitrpg-api-user nil
+  :group 'habitica)
+(defcustom habitica-api-user nil
   "API user id."
-  :group 'habitrpg)
-(defcustom habitrpg-api-token nil
+  :group 'habitica)
+(defcustom habitica-api-token nil
   "API token."
-  :group 'habitrpg)
+  :group 'habitica)
 
 (cl-eval-when (load eval)
-  (defalias 'habitrpg-set-variable-and-refresh 'set-default))
+  (defalias 'habitica-set-variable-and-refresh 'set-default))
 
 
-(defgroup habitrpg-faces nil
-  "Customize the appearance of Habitrpg."
-  :prefix "habitrpg-"
+(defgroup habitica-faces nil
+  "Customize the appearance of Habitica."
+  :prefix "habitica-"
   :group 'faces
-  :group 'habitrpg)
+  :group 'habitica)
 
-(defface habitrpg-header
+(defface habitica-header
   '((t :inherit header-line))
   "Face for generic header lines.
-Many Habitrpg faces inherit from this one by default."
-  :group 'habitrpg-faces)
+Many Habitica faces inherit from this one by default."
+  :group 'habitica-faces)
 
-(defface habitrpg-section-title
-  '((t :inherit habitrpg-header))
+(defface habitica-section-title
+  '((t :inherit habitica-header))
   "Face for section titles."
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-tag
-  '((t :inherit habitrpg-header))
+(defface habitica-tag
+  '((t :inherit habitica-header))
   "Face for tags."
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-item-mark
+(defface habitica-item-mark
   '((t :inherit secondary-selection))
   "Face for highlighting marked item."
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-header
+(defface habitica-header
   '((t :inherit header-line))
   "Face for generic header lines.
 
-Many Habitrpg faces inherit from this one by default."
-  :group 'habitrpg-faces)
+Many Habitica faces inherit from this one by default."
+  :group 'habitica-faces)
 
-(defface habitrpg-day
+(defface habitica-day
   '((((class color) (background light))
      :foreground "grey11")
     (((class color) (background dark))
      :foreground "grey80"))
   "face"
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-user
+(defface habitica-user
   '((((class color) (background light))
      :foreground "firebrick")
     (((class color) (background dark))
      :foreground "tomato"))
   "face"
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-nextlvl
+(defface habitica-nextlvl
   '((((class color) (background light))
      :box t
      :background "light green"
@@ -196,9 +196,9 @@ Many Habitrpg faces inherit from this one by default."
      :background "light green"
      :foreground "dark olive green"))
   "face"
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-exp
+(defface habitica-exp
   '((((class color) (background light))
      :box t
      :background "IndianRed1"
@@ -208,9 +208,9 @@ Many Habitrpg faces inherit from this one by default."
      :background "IndianRed1"
      :foreground "IndianRed4"))
   "Face for exp."
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-lvl
+(defface habitica-lvl
   '((((class color) (background light))
      :box t
      :background "Grey85"
@@ -220,9 +220,9 @@ Many Habitrpg faces inherit from this one by default."
      :background "Grey11"
      :foreground "DarkSeaGreen2"))
   "Face for level."
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-gold
+(defface habitica-gold
   '((((class color) (background light))
      :box t
      :background "LemonChiffon1"
@@ -232,9 +232,9 @@ Many Habitrpg faces inherit from this one by default."
      :background "LemonChiffon1"
      :foreground "goldenrod4"))
   "Face for gold."
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-hp
+(defface habitica-hp
   '((((class color) (background light))
      :box t
      :background "IndianRed1"
@@ -244,9 +244,9 @@ Many Habitrpg faces inherit from this one by default."
      :background "IndianRed1"
      :foreground "IndianRed4"))
   "Face for hp."
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defface habitrpg-maxhp
+(defface habitica-maxhp
   '((((class color) (background light))
      :box t
      :background "Grey85"
@@ -256,14 +256,14 @@ Many Habitrpg faces inherit from this one by default."
      :background "Grey13"
      :foreground "LightSkyBlue1"))
   "face"
-  :group 'habitrpg-faces)
+  :group 'habitica-faces)
 
-(defvar habitrpg-tmp-buffer-name " *habitrpg-tmp*")
-(defvar habitrpg-header-line-string nil
+(defvar habitica-tmp-buffer-name " *habitica-tmp*")
+(defvar habitica-header-line-string nil
   "Header line that shows when you are clocked into a habit that is to be downvoted.")
 
 (defconst hrpg-repeat-interval 120)
-(defvar habitrpg-mode-hook nil "Hook run by `habitrpg-status-mode'.")
+(defvar habitica-mode-hook nil "Hook run by `habitica-status-mode'.")
 
 (defvar hrpg-timer)
 (defvar hrpg-status-to-file nil)
@@ -278,90 +278,90 @@ This is an alist where each element is of the
   "List of IDs that need to be upvoted.")
 (defvar hrpg-to-add nil
   "List of tasks that need to be added.")
-(defvar habitrpg-refresh-function nil)
-(make-variable-buffer-local 'habitrpg-refresh-function)
-(put 'habitrpg-refresh-function 'permanent-local t)
+(defvar habitica-refresh-function nil)
+(make-variable-buffer-local 'habitica-refresh-function)
+(put 'habitica-refresh-function 'permanent-local t)
 
-(defvar habitrpg-refresh-args nil)
-(make-variable-buffer-local 'habitrpg-refresh-args)
-(put 'habitrpg-refresh-args 'permanent-local t)
+(defvar habitica-refresh-args nil)
+(make-variable-buffer-local 'habitica-refresh-args)
+(put 'habitica-refresh-args 'permanent-local t)
 
-(defvar habitrpg-mode-map
+(defvar habitica-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
-    (define-key map (kbd "n") 'habitrpg-goto-next-section)
-    (define-key map (kbd "p") 'habitrpg-goto-previous-section)
-    (define-key map (kbd "^") 'habitrpg-goto-parent-section)
-    (define-key map (kbd "M-n") 'habitrpg-goto-next-sibling-section)
-    (define-key map (kbd "M-p") 'habitrpg-goto-previous-sibling-section)
-    (define-key map (kbd "TAB") 'habitrpg-toggle-section)
-    (define-key map (kbd "RET") 'habitrpg-search-task-name)
-    (define-key map (kbd "<backtab>") 'habitrpg-expand-collapse-section)
-    (define-key map (kbd "C-c C-c") 'habitrpg-upvote-at-point)
-    (define-key map (kbd "C-c C-x C-i") 'habitrpg-clock-in-status)
-    (define-key map (kbd "C-c C-d") 'habitrpg-downvote-at-point)
-    (define-key map (kbd "t") 'habitrpg-key-mode-popup-manage)
-    (define-key map (kbd "g") 'habitrpg-refresh)
-    (define-key map (kbd "G") 'habitrpg-refresh-all)
-    (define-key map (kbd "q") 'habitrpg-quit-window)
+    (define-key map (kbd "n") 'habitica-goto-next-section)
+    (define-key map (kbd "p") 'habitica-goto-previous-section)
+    (define-key map (kbd "^") 'habitica-goto-parent-section)
+    (define-key map (kbd "M-n") 'habitica-goto-next-sibling-section)
+    (define-key map (kbd "M-p") 'habitica-goto-previous-sibling-section)
+    (define-key map (kbd "TAB") 'habitica-toggle-section)
+    (define-key map (kbd "RET") 'habitica-search-task-name)
+    (define-key map (kbd "<backtab>") 'habitica-expand-collapse-section)
+    (define-key map (kbd "C-c C-c") 'habitica-upvote-at-point)
+    (define-key map (kbd "C-c C-x C-i") 'habitica-clock-in-status)
+    (define-key map (kbd "C-c C-d") 'habitica-downvote-at-point)
+    (define-key map (kbd "t") 'habitica-key-mode-popup-manage)
+    (define-key map (kbd "g") 'habitica-refresh)
+    (define-key map (kbd "G") 'habitica-refresh-all)
+    (define-key map (kbd "q") 'habitica-quit-window)
     map))
 
-(defcustom habitrpg-status-buffer-switch-function 'pop-to-buffer
-  "Function for `habitrpg-status' to use for switching to the status buffer.
+(defcustom habitica-status-buffer-switch-function 'pop-to-buffer
+  "Function for `habitica-status' to use for switching to the status buffer.
 
 The function is given one argument, the status buffer."
-  :group 'habitrpg
+  :group 'habitica
   :type '(radio (function-item switch-to-buffer)
                 (function-item pop-to-buffer)
                 (function :tag "Other")))
 
-(defvar habitrpg-status-line-align-to 9)
-(defun habitrpg-insert-status-line (heading info-string)
+(defvar habitica-status-line-align-to 9)
+(defun habitica-insert-status-line (heading info-string)
   (insert heading "/"
-          (make-string (max 1 (- habitrpg-status-line-align-to
+          (make-string (max 1 (- habitica-status-line-align-to
                                  (length heading))) ?\ )
           info-string "\n"))
 
 ;;
-;; HabitRPG Status Buffer
+;; Habitica Status Buffer
 ;;
 
 ;;;###autoload
-(defun habitrpg-status ()
+(defun habitica-status ()
   (interactive)
-  (when (and (not habitrpg-api-user) (not habitrpg-api-token))
-    (setq habitrpg-api-user (read-from-minibuffer "API User ID: ")
-	  habitrpg-api-token (read-from-minibuffer "API Token: ")))
-  (let ((buf (or (habitrpg-find-status-buffer 'habitrpg-status-mode)
+  (when (and (not habitica-api-user) (not habitica-api-token))
+    (setq habitica-api-user (read-from-minibuffer "API User ID: ")
+	  habitica-api-token (read-from-minibuffer "API Token: ")))
+  (let ((buf (or (habitica-find-status-buffer 'habitica-status-mode)
 		 (generate-new-buffer
-		  "*habitrpg:status*"))))
-    (funcall habitrpg-status-buffer-switch-function buf)
-    (habitrpg-mode-init 'habitrpg-status-mode #'habitrpg-refresh-status)))
+		  "*habitica:status*"))))
+    (funcall habitica-status-buffer-switch-function buf)
+    (habitica-mode-init 'habitica-status-mode #'habitica-refresh-status)))
 
-(defun habitrpg-find-status-buffer (submode)
+(defun habitica-find-status-buffer (submode)
   (cl-find-if (lambda (buf)
 		(with-current-buffer buf
 		  (eq major-mode submode)))
 	      (buffer-list)))
 
-(defun habitrpg-mode-init (submode refresh-func &rest refresh-args)
-  (setq habitrpg-refresh-function refresh-func
-        habitrpg-refresh-args refresh-args)
+(defun habitica-mode-init (submode refresh-func &rest refresh-args)
+  (setq habitica-refresh-function refresh-func
+        habitica-refresh-args refresh-args)
   (funcall submode)
-  (habitrpg-refresh-buffer))
+  (habitica-refresh-buffer))
 
-(defun habitrpg-refresh-status ()
-  (habitrpg-do-backlog)
-  (setq header-line-format habitrpg-header-line-string)
-  (habitrpg-create-buffer-sections
-    (habitrpg-with-section 'status nil
+(defun habitica-refresh-status ()
+  (habitica-do-backlog)
+  (setq header-line-format habitica-header-line-string)
+  (habitica-create-buffer-sections
+    (habitica-with-section 'status nil
       (request
-       (concat habitrpg-api-url "/user")
+       (concat habitica-api-url "/user")
        :type "GET"
        :parser 'json-read
        :headers `(("Accept" . "application/json")
-		  ("X-API-User" . ,habitrpg-api-user)
-		  ("X-API-Key" . ,habitrpg-api-token))
+		  ("X-API-User" . ,habitica-api-user)
+		  ("X-API-Key" . ,habitica-api-token))
        :sync t
        :success (function*
 		 (lambda (&key data &allow-other-keys)
@@ -389,10 +389,10 @@ The function is given one argument, the status buffer."
 			  ;; pref
 			  (pref (assoc-default 'preferences data))
 			  (day (assoc-default 'dayStart pref)))
-		     (habitrpg-with-section 'stats 'stats
-		       (habitrpg-set-section-info `(("gp" . ,(floor gp))))
-		       (habitrpg-insert-status-line
-			(propertize user 'face 'habitrpg-user)
+		     (habitica-with-section 'stats 'stats
+		       (habitica-set-section-info `(("gp" . ,(floor gp))))
+		       (habitica-insert-status-line
+			(propertize user 'face 'habitica-user)
 			(concat (if (eq rest t)
 				    (propertize "Resting" 'face 'font-lock-warning-face)
 				  "")
@@ -403,61 +403,61 @@ The function is given one argument, the status buffer."
 						 (concat "0" day)
 					       day)
 					   (number-to-string day)))
-				 'face 'habitrpg-day)))
+				 'face 'habitica-day)))
 
-		       (habitrpg-insert-status-line (concat "Experience: "
+		       (habitica-insert-status-line (concat "Experience: "
 							    (propertize
 							     (number-to-string (floor exp))
-							     'face 'habitrpg-exp))
-						    (propertize (number-to-string nextlvl) 'face 'habitrpg-nextlvl))
-		       (habitrpg-insert-status-line (concat "Gold: "
+							     'face 'habitica-exp))
+						    (propertize (number-to-string nextlvl) 'face 'habitica-nextlvl))
+		       (habitica-insert-status-line (concat "Gold: "
 							    (propertize (number-to-string (floor gp))
-									'face 'habitrpg-gold)) "")
-		       (habitrpg-insert-status-line (concat "Health: "
+									'face 'habitica-gold)) "")
+		       (habitica-insert-status-line (concat "Health: "
 							    (propertize (number-to-string (floor hp))
-									'face 'habitrpg-hp))
-						    (propertize (number-to-string maxhp) 'face 'habitrpg-maxhp))
-		       (habitrpg-insert-status-line (concat "Level: "
+									'face 'habitica-hp))
+						    (propertize (number-to-string maxhp) 'face 'habitica-maxhp))
+		       (habitica-insert-status-line (concat "Level: "
 							    (propertize
 							     (number-to-string (floor lvl))
-							     'face 'habitrpg-lvl)) "\n")
-		       (let ((habitrpg-section-hidden-default t))
-			 (habitrpg-with-section uid 'auth
+							     'face 'habitica-lvl)) "\n")
+		       (let ((habitica-section-hidden-default t))
+			 (habitica-with-section uid 'auth
 			   (insert (propertize "[UID]\n" 'face 'font-lock-comment-face))
 			   (insert (propertize (concat uid "\n") 'face 'font-lock-keyword-face)))))))))
       (insert "\n")
-      (habitrpg-insert-tasks)
-      (habitrpg-insert-habits)
-      (habitrpg-insert-dailys)
-      (habitrpg-insert-rewards)
-      (habitrpg-insert-eggs)
-      (habitrpg-insert-potions)
-      (habitrpg-insert-pets)
-      (habitrpg-insert-store t)
+      (habitica-insert-tasks)
+      (habitica-insert-habits)
+      (habitica-insert-dailys)
+      (habitica-insert-rewards)
+      (habitica-insert-eggs)
+      (habitica-insert-potions)
+      (habitica-insert-pets)
+      (habitica-insert-store t)
       (kill-buffer "*request*")
       )))
 
-(defun habitrpg-mode ()
-  "Review the status of your habitrpg characters.
+(defun habitica-mode ()
+  "Review the status of your habitica characters.
 
-\\{habitrpg-mode-map}"
+\\{habitica-mode-map}"
   (kill-all-local-variables)
   (buffer-disable-undo)
   (setq buffer-read-only t
         truncate-lines t
-        major-mode 'habitrpg-mode
-        mode-name "Habitrpg"
+        major-mode 'habitica-mode
+        mode-name "Habitica"
         mode-line-process "")
-  (use-local-map habitrpg-mode-map)
-  (run-mode-hooks 'habitrpg-mode-hook))
+  (use-local-map habitica-mode-map)
+  (run-mode-hooks 'habitica-mode-hook))
 
-(define-derived-mode habitrpg-status-mode habitrpg-mode "Habitrpg"
+(define-derived-mode habitica-status-mode habitica-mode "Habitica"
   "Mode for looking at status.
 
-\\{habitrpg-status-mode-map}"
-  :group 'habitrpg)
+\\{habitica-status-mode-map}"
+  :group 'habitica)
 
-(defun habitrpg-json-output (new-request-p args)
+(defun habitica-json-output (new-request-p args)
   (with-output-to-string
     (with-current-buffer standard-output
       (unless (and (get-buffer "*request*") (not new-request-p))
@@ -465,89 +465,89 @@ The function is given one argument, the status buffer."
 	       args))
       (insert-buffer-substring (get-buffer "*request*")))))
 
-(defun habitrpg-string (&rest args)
-  (habitrpg-trim-line (habitrpg-output args)))
+(defun habitica-string (&rest args)
+  (habitica-trim-line (habitica-output args)))
 
-(defun habitrpg-output (new-request-p args)
-  (habitrpg-json-output new-request-p (append args) ))
+(defun habitica-output (new-request-p args)
+  (habitica-json-output new-request-p (append args) ))
 
-(defun habitrpg-trim-line (str)
+(defun habitica-trim-line (str)
   (if (string= str "")
       nil
     (if (equal (elt str (- (length str) 1)) ?\n)
         (substring str 0 (- (length str) 1))
       str)))
 
-(defun habitrpg-json-insert (cmd new-request-p args)
-  (insert (habitrpg-json-output new-request-p args)))
+(defun habitica-json-insert (cmd new-request-p args)
+  (insert (habitica-json-output new-request-p args)))
 
-(defun habitrpg-for-all-buffers (func &optional dir)
+(defun habitica-for-all-buffers (func &optional dir)
   (dolist (buf (buffer-list))
     (with-current-buffer buf
-      (if (and (derived-mode-p 'habitrpg-mode)
+      (if (and (derived-mode-p 'habitica-mode)
                (or (null dir)
                    (equal default-directory dir)))
           (funcall func)))))
 
-(defun habitrpg-buffer-switch (buf)
-  (if (string-match "habitrpg" (buffer-name))
+(defun habitica-buffer-switch (buf)
+  (if (string-match "habitica" (buffer-name))
       (switch-to-buffer buf)
     (pop-to-buffer buf)))
 
 ;;; Sections
 
-;; A buffer in habitrpg-mode is organized into hierarchical sections.
+;; A buffer in habitica-mode is organized into hierarchical sections.
 ;; These sections are used for navigation and for hiding parts of the
 ;; buffer.
 ;;
-;; Most sections also represent the objects that Habitrpg works with.
+;; Most sections also represent the objects that Habitica works with.
 ;; The 'type' of a section identifies what kind of object it
 ;; represents (if any), and the parent and grand-parent, etc provide
 ;; the context.
 
-(cl-defstruct habitrpg-section
+(cl-defstruct habitica-section
   parent title beginning end children hidden type info
   needs-refresh-on-show)
 
-(defvar habitrpg-top-section nil
+(defvar habitica-top-section nil
   "The top section of the current buffer.")
-(make-variable-buffer-local 'habitrpg-top-section)
-(put 'habitrpg-top-section 'permanent-local t)
+(make-variable-buffer-local 'habitica-top-section)
+(put 'habitica-top-section 'permanent-local t)
 
-(defvar habitrpg-old-top-section nil)
+(defvar habitica-old-top-section nil)
 
-(defvar habitrpg-section-hidden-default nil)
+(defvar habitica-section-hidden-default nil)
 
-(defun habitrpg-propertize-section (section)
+(defun habitica-propertize-section (section)
   "Add text-property needed for SECTION."
-  (put-text-property (habitrpg-section-beginning section)
-                     (habitrpg-section-end section)
-                     'habitrpg-section section)
-  (dolist (s (habitrpg-section-children section))
-    (habitrpg-propertize-section s)))
+  (put-text-property (habitica-section-beginning section)
+                     (habitica-section-end section)
+                     'habitica-section section)
+  (dolist (s (habitica-section-children section))
+    (habitica-propertize-section s)))
 
-(defun habitrpg-section-set-hidden (section hidden)
+(defun habitica-section-set-hidden (section hidden)
   "Hide SECTION if HIDDEN is not nil, show it otherwise."
-  (setf (habitrpg-section-hidden section) hidden)
+  (setf (habitica-section-hidden section) hidden)
   (if (and (not hidden)
-           (habitrpg-section-needs-refresh-on-show section))
-      (habitrpg-refresh)
+           (habitica-section-needs-refresh-on-show section))
+      (habitica-refresh)
     (let ((inhibit-read-only t)
           (beg (save-excursion
-                 (goto-char (habitrpg-section-beginning section))
+                 (goto-char (habitica-section-beginning section))
                  (forward-line)
                  (point)))
-          (end (habitrpg-section-end section)))
+          (end (habitica-section-end section)))
       (if (< beg end)
           (put-text-property beg end 'invisible hidden)))
     (if (not hidden)
-        (dolist (c (habitrpg-section-children section))
-          (habitrpg-section-set-hidden c (habitrpg-section-hidden c))))))
+        (dolist (c (habitica-section-children section))
+          (habitica-section-set-hidden c (habitica-section-hidden c))))))
 
-(defun habitrpg-set-section-info (info &optional section)
-  (setf (habitrpg-section-info (or section habitrpg-top-section)) info))
+(defun habitica-set-section-info (info &optional section)
+  (setf (habitica-section-info (or section habitica-top-section)) info))
 
-(defmacro habitrpg-with-section (title type &rest body)
+(defmacro habitica-with-section (title type &rest body)
   "Create a new section of title TITLE and type TYPE and evaluate BODY there.
 
 Sections created inside BODY will become children of the new
@@ -556,53 +556,53 @@ section. BODY must leave point at the end of the created section.
 If TYPE is nil, the section won't be highlighted."
   (declare (indent 2))
   (let ((s (make-symbol "*section*")))
-    `(let* ((,s (habitrpg-new-section ,title ,type))
-            (habitrpg-top-section ,s))
-       (setf (habitrpg-section-beginning ,s) (point))
+    `(let* ((,s (habitica-new-section ,title ,type))
+            (habitica-top-section ,s))
+       (setf (habitica-section-beginning ,s) (point))
        ,@body
-       (setf (habitrpg-section-end ,s) (point))
-       (setf (habitrpg-section-children ,s)
-             (nreverse (habitrpg-section-children ,s)))
+       (setf (habitica-section-end ,s) (point))
+       (setf (habitica-section-children ,s)
+             (nreverse (habitica-section-children ,s)))
        ,s)))
 
-(defun habitrpg-set-section-needs-refresh-on-show (flag &optional section)
-  (setf (habitrpg-section-needs-refresh-on-show
-         (or section habitrpg-top-section))
+(defun habitica-set-section-needs-refresh-on-show (flag &optional section)
+  (setf (habitica-section-needs-refresh-on-show
+         (or section habitica-top-section))
         flag))
 
-(defun habitrpg-new-section (title type)
+(defun habitica-new-section (title type)
   "Create a new section with title TITLE and type TYPE in current buffer.
 
-If `habitrpg-top-section' buffer local value is nil, the new section
+If `habitica-top-section' buffer local value is nil, the new section
 will be the new top-section; otherwise the new-section will be a
 child of the current top-section.
 
 If TYPE is nil, the section won't be highlighted."
-  (let* ((s (make-habitrpg-section :parent habitrpg-top-section
+  (let* ((s (make-habitica-section :parent habitica-top-section
 				   :title title
 				   :type type
-				   :hidden habitrpg-section-hidden-default))
-         (old (and habitrpg-old-top-section
-                   (habitrpg-find-section (habitrpg-section-path s)
-					  habitrpg-old-top-section))))
-    (if habitrpg-top-section
-        (push s (habitrpg-section-children habitrpg-top-section))
-      (setq habitrpg-top-section s))
+				   :hidden habitica-section-hidden-default))
+         (old (and habitica-old-top-section
+                   (habitica-find-section (habitica-section-path s)
+					  habitica-old-top-section))))
+    (if habitica-top-section
+        (push s (habitica-section-children habitica-top-section))
+      (setq habitica-top-section s))
     (if old
-        (setf (habitrpg-section-hidden s) (habitrpg-section-hidden old)))
+        (setf (habitica-section-hidden s) (habitica-section-hidden old)))
     s))
 
-(defun habitrpg-cancel-section (section)
+(defun habitica-cancel-section (section)
   "Delete the section SECTION."
-  (delete-region (habitrpg-section-beginning section)
-                 (habitrpg-section-end section))
-  (let ((parent (habitrpg-section-parent section)))
+  (delete-region (habitica-section-beginning section)
+                 (habitica-section-end section))
+  (let ((parent (habitica-section-parent section)))
     (if parent
-        (setf (habitrpg-section-children parent)
-              (delq section (habitrpg-section-children parent)))
-      (setq habitrpg-top-section nil))))
+        (setf (habitica-section-children parent)
+              (delq section (habitica-section-children parent)))
+      (setq habitica-top-section nil))))
 
-(defun habitrpg-insert-section (section-title-and-type
+(defun habitica-insert-section (section-title-and-type
 				buffer-title washer cmd new-request-p &rest args)
   "Run CMD and put its result in a new section.
 
@@ -615,7 +615,7 @@ BUFFER-TITLE is the inserted title of the section
 
 WASHER is a function that will be run after CMD.
 The buffer will be narrowed to the inserted text.
-It should add sectioning as needed for Habitrpg interaction.
+It should add sectioning as needed for Habitica interaction.
 
 CMD is an external command that will be run with ARGS as arguments."
   (let* ((body-beg nil)
@@ -627,12 +627,12 @@ CMD is an external command that will be run with ARGS as arguments."
                          nil))
 
          (section
-          (habitrpg-with-section section-title section-type
+          (habitica-with-section section-title section-type
             (if buffer-title
-                (insert (propertize buffer-title 'face 'habitrpg-section-title)
+                (insert (propertize buffer-title 'face 'habitica-section-title)
                         "\n"))
 	    (setq body-beg (point))
-	    (habitrpg-json-insert cmd new-request-p args)
+	    (habitica-json-insert cmd new-request-p args)
 	    (if (not (eq (char-before) ?\n))
 		(insert "\n"))
 	    (if washer
@@ -642,453 +642,453 @@ CMD is an external command that will be run with ARGS as arguments."
 		  (funcall washer)
 		  (goto-char (point-max)))))))
     (if (= body-beg (point))
-	(habitrpg-cancel-section section)
+	(habitica-cancel-section section)
       (insert "\n"))
     section))
 
-(defun habitrpg-section (section-title-and-type
+(defun habitica-section (section-title-and-type
 			 buffer-title washer new-request-p &rest args)
   "Run habit and put its result in a new section.
-See `habitrpg-insert-section' for meaning of the arguments"
-  (apply #'habitrpg-insert-section
+See `habitica-insert-section' for meaning of the arguments"
+  (apply #'habitica-insert-section
          section-title-and-type
          buffer-title
          washer
-	 habitrpg-api-url
+	 habitica-api-url
 	 new-request-p
          (append args)))
 
-(defmacro habitrpg-create-buffer-sections (&rest body)
-  "Empty current buffer of text and habitrpg's sections, and then evaluate BODY."
+(defmacro habitica-create-buffer-sections (&rest body)
+  "Empty current buffer of text and habitica's sections, and then evaluate BODY."
   (declare (indent 0))
   `(let ((inhibit-read-only t))
      (erase-buffer)
-     (let ((habitrpg-old-top-section habitrpg-top-section))
-       (setq habitrpg-top-section nil)
+     (let ((habitica-old-top-section habitica-top-section))
+       (setq habitica-top-section nil)
        ,@body
-       (when (null habitrpg-top-section)
-         (habitrpg-with-section 'top nil
+       (when (null habitica-top-section)
+         (habitica-with-section 'top nil
            (insert "(empty)\n")))
-       (habitrpg-propertize-section habitrpg-top-section)
-       (habitrpg-section-set-hidden habitrpg-top-section
-				    (habitrpg-section-hidden habitrpg-top-section)))))
+       (habitica-propertize-section habitica-top-section)
+       (habitica-section-set-hidden habitica-top-section
+				    (habitica-section-hidden habitica-top-section)))))
 
-(defun habitrpg-find-section (path top)
+(defun habitica-find-section (path top)
   "Find the section at the path PATH in subsection of section TOP."
   (if (null path)
       top
-    (let ((secs (habitrpg-section-children top)))
+    (let ((secs (habitica-section-children top)))
       (while (and secs (not (equal (car path)
-                                   (habitrpg-section-title (car secs)))))
+                                   (habitica-section-title (car secs)))))
         (setq secs (cdr secs)))
       (and (car secs)
-           (habitrpg-find-section (cdr path) (car secs))))))
+           (habitica-find-section (cdr path) (car secs))))))
 
-(defun habitrpg-section-path (section)
+(defun habitica-section-path (section)
   "Return the path of SECTION."
-  (if (not (habitrpg-section-parent section))
+  (if (not (habitica-section-parent section))
       '()
-    (append (habitrpg-section-path (habitrpg-section-parent section))
-            (list (habitrpg-section-title section)))))
+    (append (habitica-section-path (habitica-section-parent section))
+            (list (habitica-section-title section)))))
 
-(defun habitrpg-find-section-after (pos)
+(defun habitica-find-section-after (pos)
   "Find the first section that begins after POS."
-  (habitrpg-find-section-after* pos (list habitrpg-top-section)))
+  (habitica-find-section-after* pos (list habitica-top-section)))
 
-(defun habitrpg-find-section-after* (pos secs)
+(defun habitica-find-section-after* (pos secs)
   "Find the first section that begins after POS in the list SECS
 \(including children of sections in SECS)."
   (while (and secs
-              (<= (habitrpg-section-beginning (car secs)) pos))
-    (setq secs (if (habitrpg-section-hidden (car secs))
+              (<= (habitica-section-beginning (car secs)) pos))
+    (setq secs (if (habitica-section-hidden (car secs))
                    (cdr secs)
-                 (append (habitrpg-section-children (car secs))
+                 (append (habitica-section-children (car secs))
                          (cdr secs)))))
   (car secs))
 
-(defun habitrpg-find-section-before (pos) "Return the last section that begins before POS."
-       (let ((section (habitrpg-find-section-at pos)))
-	 (cl-do* ((current (or (habitrpg-section-parent section)
+(defun habitica-find-section-before (pos) "Return the last section that begins before POS."
+       (let ((section (habitica-find-section-at pos)))
+	 (cl-do* ((current (or (habitica-section-parent section)
 			       section) next)
 		  (next
-		   (if (not (habitrpg-section-hidden current))
-		       (habitrpg-find-section-before* pos (habitrpg-section-children current)))
-		   (if (not (habitrpg-section-hidden current))
-		       (habitrpg-find-section-before* pos (habitrpg-section-children current)))))
+		   (if (not (habitica-section-hidden current))
+		       (habitica-find-section-before* pos (habitica-section-children current)))
+		   (if (not (habitica-section-hidden current))
+		       (habitica-find-section-before* pos (habitica-section-children current)))))
 	     ((null next) current))))
 
-(defun habitrpg-find-section-before* (pos secs)
+(defun habitica-find-section-before* (pos secs)
   "Find the last section that begins before POS in the list SECS."
   (let ((prev nil))
     (while (and secs
-                (< (habitrpg-section-beginning (car secs)) pos))
+                (< (habitica-section-beginning (car secs)) pos))
       (setq prev (car secs))
       (setq secs (cdr secs)))
     prev))
 
-(defun habitrpg-find-section-at (pos)
-  "Return the Habitrpg section at POS."
-  (or (get-text-property pos 'habitrpg-section)
-      habitrpg-top-section))
+(defun habitica-find-section-at (pos)
+  "Return the Habitica section at POS."
+  (or (get-text-property pos 'habitica-section)
+      habitica-top-section))
 
-(defun habitrpg-goto-next-section ()
+(defun habitica-goto-next-section ()
   "Go to the next section."
   (interactive)
-  (let ((next (habitrpg-find-section-after (point))))
+  (let ((next (habitica-find-section-after (point))))
     (if next
-        (habitrpg-goto-section next)
+        (habitica-goto-section next)
       (message "No next section"))))
 
-(defun habitrpg-goto-previous-section ()
+(defun habitica-goto-previous-section ()
   "Go to the previous section."
   (interactive)
   (if (eq (point) 1)
       (message "No previous section")
     (let ((p (point)))
-      (habitrpg-goto-section (habitrpg-find-section-before (point)))
+      (habitica-goto-section (habitica-find-section-before (point)))
       (forward-char)
       (when (eq p (point))
 	(beginning-of-line)
-	(habitrpg-goto-section (habitrpg-find-section-before (point)))
+	(habitica-goto-section (habitica-find-section-before (point)))
 	(forward-char)))))
 
-(defun habitrpg-goto-parent-section ()
+(defun habitica-goto-parent-section ()
   "Go to the parent section."
   (interactive)
-  (let ((parent (habitrpg-section-parent (habitrpg-current-section))))
+  (let ((parent (habitica-section-parent (habitica-current-section))))
     (when parent
-      (goto-char (habitrpg-section-beginning parent)))))
+      (goto-char (habitica-section-beginning parent)))))
 
-(defun habitrpg-goto-next-sibling-section ()
+(defun habitica-goto-next-sibling-section ()
   "Go to the next sibling section."
   (interactive)
   (let* ((initial (point))
-         (section (habitrpg-current-section))
-         (end (- (habitrpg-section-end section) 1))
-         (parent (habitrpg-section-parent section))
-         (siblings (and parent (habitrpg-section-children parent)))
-         (next-sibling (habitrpg-find-section-after* end siblings)))
+         (section (habitica-current-section))
+         (end (- (habitica-section-end section) 1))
+         (parent (habitica-section-parent section))
+         (siblings (and parent (habitica-section-children parent)))
+         (next-sibling (habitica-find-section-after* end siblings)))
     (if next-sibling
-        (habitrpg-goto-section next-sibling)
-      (habitrpg-goto-next-section))))
+        (habitica-goto-section next-sibling)
+      (habitica-goto-next-section))))
 
-(defun habitrpg-goto-previous-sibling-section ()
+(defun habitica-goto-previous-sibling-section ()
   "Go to the previous sibling section."
   (interactive)
-  (let* ((section (habitrpg-current-section))
-         (beginning (habitrpg-section-beginning section))
-         (parent (habitrpg-section-parent section))
-         (siblings (and parent (habitrpg-section-children parent)))
-         (previous-sibling (habitrpg-find-section-before* beginning siblings)))
+  (let* ((section (habitica-current-section))
+         (beginning (habitica-section-beginning section))
+         (parent (habitica-section-parent section))
+         (siblings (and parent (habitica-section-children parent)))
+         (previous-sibling (habitica-find-section-before* beginning siblings)))
     (if previous-sibling
-        (habitrpg-goto-section previous-sibling)
-      (habitrpg-goto-parent-section))))
+        (habitica-goto-section previous-sibling)
+      (habitica-goto-parent-section))))
 
-(defun habitrpg-goto-section (section)
-  (goto-char (habitrpg-section-beginning section)))
+(defun habitica-goto-section (section)
+  (goto-char (habitica-section-beginning section)))
 
-(defun habitrpg-goto-section-at-path (path)
+(defun habitica-goto-section-at-path (path)
   "Go to the section described by PATH."
-  (let ((sec (habitrpg-find-section path habitrpg-top-section)))
+  (let ((sec (habitica-find-section path habitica-top-section)))
     (if sec
-        (goto-char (habitrpg-section-beginning sec))
+        (goto-char (habitica-section-beginning sec))
       (message "No such section"))))
 
-(defun habitrpg-for-all-sections (func &optional top)
+(defun habitica-for-all-sections (func &optional top)
   "Run FUNC on TOP and recursively on all its children.
-Default value for TOP is `habitrpg-top-section'"
-  (let ((section (or top habitrpg-top-section)))
+Default value for TOP is `habitica-top-section'"
+  (let ((section (or top habitica-top-section)))
     (when section
       (funcall func section)
-      (dolist (c (habitrpg-section-children section))
-        (habitrpg-for-all-sections func c)))))
+      (dolist (c (habitica-section-children section))
+        (habitica-for-all-sections func c)))))
 
-(defun habitrpg-section-any-hidden (section)
+(defun habitica-section-any-hidden (section)
   "Return true if SECTION or any of its children is hidden."
-  (or (habitrpg-section-hidden section)
-      (let ((kids (habitrpg-section-children section)))
-        (while (and kids (not (habitrpg-section-any-hidden (car kids))))
+  (or (habitica-section-hidden section)
+      (let ((kids (habitica-section-children section)))
+        (while (and kids (not (habitica-section-any-hidden (car kids))))
           (setq kids (cdr kids)))
         kids)))
 
-(defun habitrpg-section-collapse (section)
+(defun habitica-section-collapse (section)
   "Show SECTION and hide all its children."
-  (dolist (c (habitrpg-section-children section))
-    (setf (habitrpg-section-hidden c) t))
-  (habitrpg-section-set-hidden section nil))
+  (dolist (c (habitica-section-children section))
+    (setf (habitica-section-hidden c) t))
+  (habitica-section-set-hidden section nil))
 
-(defun habitrpg-section-expand (section)
+(defun habitica-section-expand (section)
   "Show SECTION and all its children."
-  (dolist (c (habitrpg-section-children section))
-    (setf (habitrpg-section-hidden c) nil))
-  (habitrpg-section-set-hidden section nil))
+  (dolist (c (habitica-section-children section))
+    (setf (habitica-section-hidden c) nil))
+  (habitica-section-set-hidden section nil))
 
-(defun habitrpg-section-expand-all-aux (section)
+(defun habitica-section-expand-all-aux (section)
   "Show recursively all SECTION's children."
-  (dolist (c (habitrpg-section-children section))
-    (setf (habitrpg-section-hidden c) nil)
-    (habitrpg-section-expand-all-aux c)))
+  (dolist (c (habitica-section-children section))
+    (setf (habitica-section-hidden c) nil)
+    (habitica-section-expand-all-aux c)))
 
-(defun habitrpg-section-expand-all (section)
+(defun habitica-section-expand-all (section)
   "Show SECTION and all its children."
-  (habitrpg-section-expand-all-aux section)
-  (habitrpg-section-set-hidden section nil))
+  (habitica-section-expand-all-aux section)
+  (habitica-section-set-hidden section nil))
 
-(defun habitrpg-section-hideshow (flag-or-func)
+(defun habitica-section-hideshow (flag-or-func)
   "Show or hide current section depending on FLAG-OR-FUNC.
 
 If FLAG-OR-FUNC is a function, it will be ran on current section.
 IF FLAG-OR-FUNC is a boolean, the section will be hidden if it is
 true, shown otherwise."
-  (let ((section (habitrpg-current-section)))
-    (when (habitrpg-section-parent section)
-      (goto-char (habitrpg-section-beginning section))
+  (let ((section (habitica-current-section)))
+    (when (habitica-section-parent section)
+      (goto-char (habitica-section-beginning section))
       (if (functionp flag-or-func)
           (funcall flag-or-func section)
-        (habitrpg-section-set-hidden section flag-or-func)))))
+        (habitica-section-set-hidden section flag-or-func)))))
 
-(defun habitrpg-show-section ()
+(defun habitica-show-section ()
   "Show current section."
   (interactive)
-  (habitrpg-section-hideshow nil))
+  (habitica-section-hideshow nil))
 
-(defun habitrpg-hide-section ()
+(defun habitica-hide-section ()
   "Hide current section."
   (interactive)
-  (habitrpg-section-hideshow t))
+  (habitica-section-hideshow t))
 
-(defun habitrpg-collapse-section ()
+(defun habitica-collapse-section ()
   "Hide all subsection of current section."
   (interactive)
-  (habitrpg-section-hideshow #'habitrpg-section-collapse))
+  (habitica-section-hideshow #'habitica-section-collapse))
 
-(defun habitrpg-expand-section ()
+(defun habitica-expand-section ()
   "Show all subsection of current section."
   (interactive)
-  (habitrpg-section-hideshow #'habitrpg-section-expand))
+  (habitica-section-hideshow #'habitica-section-expand))
 
-(defun habitrpg-toggle-file-section () 
-  "Like `habitrpg-toggle-section' but toggle at file granularity." 
+(defun habitica-toggle-file-section () 
+  "Like `habitica-toggle-section' but toggle at file granularity." 
   (interactive) 
-  (when (eq 'hunk (car (habitrpg-section-context-type (habitrpg-current-section)))) 
-    (habitrpg-goto-parent-section)) 
-  (habitrpg-toggle-section))
+  (when (eq 'hunk (car (habitica-section-context-type (habitica-current-section)))) 
+    (habitica-goto-parent-section)) 
+  (habitica-toggle-section))
 
-(defun habitrpg-toggle-section ()
+(defun habitica-toggle-section ()
   "Toggle hidden status of current section."
   (interactive)
-  (habitrpg-section-hideshow
+  (habitica-section-hideshow
    (lambda (s)
-     (habitrpg-section-set-hidden s (not (habitrpg-section-hidden s))))))
+     (habitica-section-set-hidden s (not (habitica-section-hidden s))))))
 
-(defun habitrpg-expand-collapse-section ()
+(defun habitica-expand-collapse-section ()
   "Toggle hidden status of subsections of current section."
   (interactive)
-  (habitrpg-section-hideshow
+  (habitica-section-hideshow
    (lambda (s)
-     (cond ((habitrpg-section-any-hidden s)
-            (habitrpg-section-expand-all s))
+     (cond ((habitica-section-any-hidden s)
+            (habitica-section-expand-all s))
            (t
-            (habitrpg-section-collapse s))))))
+            (habitica-section-collapse s))))))
 
-(defun habitrpg-cycle-section ()
+(defun habitica-cycle-section ()
   "Cycle between expanded, hidden and collapsed state for current section.
 
 Hidden: only the first line of the section is shown
 Collapsed: only the first line of the subsection is shown
 Expanded: everything is shown."
   (interactive)
-  (habitrpg-section-hideshow
+  (habitica-section-hideshow
    (lambda (s)
-     (cond ((habitrpg-section-hidden s)
-            (habitrpg-section-collapse s))
+     (cond ((habitica-section-hidden s)
+            (habitica-section-collapse s))
            ((with-no-warnings
-              (cl-notany #'habitrpg-section-hidden (habitrpg-section-children s)))
-            (habitrpg-section-set-hidden s t))
+              (cl-notany #'habitica-section-hidden (habitica-section-children s)))
+            (habitica-section-set-hidden s t))
            (t
-            (habitrpg-section-expand s))))))
+            (habitica-section-expand s))))))
 
-(defun habitrpg-section-lineage (section)
+(defun habitica-section-lineage (section)
   "Return list of parent, grand-parents... for SECTION."
   (when section
-    (cons section (habitrpg-section-lineage (habitrpg-section-parent section)))))
+    (cons section (habitica-section-lineage (habitica-section-parent section)))))
 
-(defun habitrpg-section-show-level (section level threshold path)
-  (habitrpg-section-set-hidden section (>= level threshold))
+(defun habitica-section-show-level (section level threshold path)
+  (habitica-section-set-hidden section (>= level threshold))
   (when (< level threshold)
     (if path
-        (habitrpg-section-show-level (car path) (1+ level) threshold (cdr path))
-      (dolist (c (habitrpg-section-children section))
-        (habitrpg-section-show-level c (1+ level) threshold nil)))))
+        (habitica-section-show-level (car path) (1+ level) threshold (cdr path))
+      (dolist (c (habitica-section-children section))
+        (habitica-section-show-level c (1+ level) threshold nil)))))
 
-(defun habitrpg-show-level (level all)
+(defun habitica-show-level (level all)
   "Show section whose level is less than LEVEL, hide the others.
 If ALL is non nil, do this in all sections, otherwise do it only
 pon ancestors and descendants of current section."
-  (habitrpg-with-refresh
+  (habitica-with-refresh
     (if all
-        (habitrpg-section-show-level habitrpg-top-section 0 level nil)
-      (let ((path (reverse (habitrpg-section-lineage (habitrpg-current-section)))))
-        (habitrpg-section-show-level (car path) 0 level (cdr path))))))
+        (habitica-section-show-level habitica-top-section 0 level nil)
+      (let ((path (reverse (habitica-section-lineage (habitica-current-section)))))
+        (habitica-section-show-level (car path) 0 level (cdr path))))))
 
-(defun habitrpg-current-section ()
-  "Return the Habitrpg section at point."
-  (habitrpg-find-section-at (point)))
+(defun habitica-current-section ()
+  "Return the Habitica section at point."
+  (habitica-find-section-at (point)))
 
-(defvar habitrpg-highlighted-section t)
-(defvar habitrpg-highlight-overlay nil)
+(defvar habitica-highlighted-section t)
+(defvar habitica-highlight-overlay nil)
 
-(defun habitrpg-highlight-section ()
+(defun habitica-highlight-section ()
   "Highlight current section if it has a type."
-  (let ((section (habitrpg-current-section)))
-    (when (not (eq section habitrpg-highlighted-section))
-      (setq habitrpg-highlighted-section section)
-      (if (not habitrpg-highlight-overlay)
+  (let ((section (habitica-current-section)))
+    (when (not (eq section habitica-highlighted-section))
+      (setq habitica-highlighted-section section)
+      (if (not habitica-highlight-overlay)
           (let ((ov (make-overlay 1 1)))
-            (setq habitrpg-highlight-overlay ov)))
-      (if (and section (habitrpg-section-type section))
+            (setq habitica-highlight-overlay ov)))
+      (if (and section (habitica-section-type section))
           (progn
-            (move-overlay habitrpg-highlight-overlay
-                          (habitrpg-section-beginning section)
-                          (habitrpg-section-end section)
+            (move-overlay habitica-highlight-overlay
+                          (habitica-section-beginning section)
+                          (habitica-section-end section)
                           (current-buffer)))
-        (delete-overlay habitrpg-highlight-overlay)))))
+        (delete-overlay habitica-highlight-overlay)))))
 
-(defun habitrpg-refresh-buffer (&optional buffer)
+(defun habitica-refresh-buffer (&optional buffer)
   (with-current-buffer (or buffer (current-buffer))
     (let* ((old-line (line-number-at-pos))
            (old-point (point))
-           (old-section (habitrpg-current-section))
+           (old-section (habitica-current-section))
            (old-path (and old-section
-                          (habitrpg-section-path (habitrpg-current-section)))))
+                          (habitica-section-path (habitica-current-section)))))
       (beginning-of-line)
       (let ((section-line (and old-section
                                (count-lines
-                                (habitrpg-section-beginning old-section)
+                                (habitica-section-beginning old-section)
                                 (point))))
             (line-char (- old-point (point))))
-        (if habitrpg-refresh-function
-            (apply habitrpg-refresh-function
-                   habitrpg-refresh-args))
-        (let ((s (and old-path (habitrpg-find-section old-path habitrpg-top-section))))
+        (if habitica-refresh-function
+            (apply habitica-refresh-function
+                   habitica-refresh-args))
+        (let ((s (and old-path (habitica-find-section old-path habitica-top-section))))
           (cond (s
-                 (goto-char (habitrpg-section-beginning s))
+                 (goto-char (habitica-section-beginning s))
                  (forward-line section-line)
                  (forward-char line-char))
                 (t
-                 (habitrpg-goto-line old-line)))
+                 (habitica-goto-line old-line)))
           (dolist (w (get-buffer-window-list (current-buffer)))
             (set-window-point w (point)))
-          (habitrpg-highlight-section))))))
+          (habitica-highlight-section))))))
 
-(defun habitrpg-section-context-type (section)
+(defun habitica-section-context-type (section)
   (when section
-    (let ((c (or (habitrpg-section-type section)
-                 (and (symbolp (habitrpg-section-title section))
-                      (habitrpg-section-title section)))))
+    (let ((c (or (habitica-section-type section)
+                 (and (symbolp (habitica-section-title section))
+                      (habitica-section-title section)))))
       (when c
-        (cons c (habitrpg-section-context-type
-                 (habitrpg-section-parent section)))))))
+        (cons c (habitica-section-context-type
+                 (habitica-section-parent section)))))))
 
-(defun habitrpg-string-has-prefix-p (string prefix)
+(defun habitica-string-has-prefix-p (string prefix)
   (eq (compare-strings string nil (length prefix) prefix nil nil) t))
 
-(defun habitrpg-revert-buffers (dir &optional ignore-modtime)
+(defun habitica-revert-buffers (dir &optional ignore-modtime)
   (dolist (buffer (buffer-list))
     (when (and (buffer-file-name buffer)
                (not (buffer-modified-p buffer))
                ;; don't revert indirect buffers, as the parent will be reverted
                (not (buffer-base-buffer buffer))
-               (habitrpg-string-has-prefix-p (buffer-file-name buffer) dir)
+               (habitica-string-has-prefix-p (buffer-file-name buffer) dir)
                (file-readable-p (buffer-file-name buffer))
                (or ignore-modtime (not (verify-visited-file-modtime buffer))))
       (with-current-buffer buffer
         (condition-case err
             (revert-buffer t t nil))))))
 
-(defvar habitrpg-refresh-needing-buffers nil)
-(defvar habitrpg-refresh-pending nil)
+(defvar habitica-refresh-needing-buffers nil)
+(defvar habitica-refresh-pending nil)
 
-(defun habitrpg-refresh-wrapper (func)
-  (if habitrpg-refresh-pending
+(defun habitica-refresh-wrapper (func)
+  (if habitica-refresh-pending
       (funcall func)
-    (let ((habitrpg-refresh-pending t)
-          (habitrpg-refresh-needing-buffers nil)
-          (status-buffer (habitrpg-find-status-buffer default-directory)))
+    (let ((habitica-refresh-pending t)
+          (habitica-refresh-needing-buffers nil)
+          (status-buffer (habitica-find-status-buffer default-directory)))
       (unwind-protect
           (funcall func)
-        (when habitrpg-refresh-needing-buffers
-          (mapc 'habitrpg-refresh-buffer habitrpg-refresh-needing-buffers))
+        (when habitica-refresh-needing-buffers
+          (mapc 'habitica-refresh-buffer habitica-refresh-needing-buffers))
         (when (and status-buffer
-                   (not (memq status-buffer habitrpg-refresh-needing-buffers)))
-          (habitrpg-refresh-buffer status-buffer))
-        (habitrpg-revert-buffers default-directory)))))
+                   (not (memq status-buffer habitica-refresh-needing-buffers)))
+          (habitica-refresh-buffer status-buffer))
+        (habitica-revert-buffers default-directory)))))
 
-(defun habitrpg-need-refresh (&optional buffer)
+(defun habitica-need-refresh (&optional buffer)
   "Mark BUFFER as needing to be refreshed.
 If optional BUFFER is nil, use the current buffer.  If the
-buffer's mode doesn't derive from `habitrpg-mode' do nothing."
+buffer's mode doesn't derive from `habitica-mode' do nothing."
   (with-current-buffer (or buffer (current-buffer))
-    (when (derived-mode-p 'habitrpg-mode)
+    (when (derived-mode-p 'habitica-mode)
       (cl-pushnew (current-buffer)
-                  habitrpg-refresh-needing-buffers :test 'eq))))
+                  habitica-refresh-needing-buffers :test 'eq))))
 
-(defun habitrpg-refresh ()
+(defun habitica-refresh ()
   "Refresh current buffer."
   (interactive)
-  (habitrpg-with-refresh
-    (habitrpg-need-refresh)))
+  (habitica-with-refresh
+    (habitica-need-refresh)))
 
-(defun habitrpg-refresh-all ()
-  "Refresh all habitrpg buffers.
+(defun habitica-refresh-all ()
+  "Refresh all habitica buffers.
 "
   (interactive)
-  (habitrpg-for-all-buffers #'habitrpg-refresh-buffer default-directory))
+  (habitica-for-all-buffers #'habitica-refresh-buffer default-directory))
 
 ;;; Macros
 
-(defmacro habitrpg-with-refresh (&rest body)
+(defmacro habitica-with-refresh (&rest body)
   (declare (indent 0))
-  `(habitrpg-refresh-wrapper (lambda () ,@body)))
+  `(habitica-refresh-wrapper (lambda () ,@body)))
 
-(defmacro habitrpg-define-level-shower-1 (level all)
+(defmacro habitica-define-level-shower-1 (level all)
   "Define an interactive function to show function of level LEVEL.
 
 If ALL is non nil, this function will affect all section,
 otherwise it will affect only ancestors and descendants of
 current section."
-  (let ((fun (intern (format "habitrpg-show-level-%s%s"
+  (let ((fun (intern (format "habitica-show-level-%s%s"
                              level (if all "-all" ""))))
         (doc (format "Show sections on level %s." level)))
     `(defun ,fun ()
        ,doc
        (interactive)
-       (habitrpg-show-level ,level ,all))))
+       (habitica-show-level ,level ,all))))
 
-(defmacro habitrpg-define-level-shower (level)
+(defmacro habitica-define-level-shower (level)
   "Define two interactive function to show function of level LEVEL.
 One for all, one for current lineage."
   `(progn
-     (habitrpg-define-level-shower-1 ,level nil)
-     (habitrpg-define-level-shower-1 ,level t)))
+     (habitica-define-level-shower-1 ,level nil)
+     (habitica-define-level-shower-1 ,level t)))
 
-(defmacro habitrpg-define-section-jumper (sym title)
+(defmacro habitica-define-section-jumper (sym title)
   "Define an interactive function to go to section SYM.
 TITLE is the displayed title of the section."
-  (let ((fun (intern (format "habitrpg-jump-to-%s" sym)))
+  (let ((fun (intern (format "habitica-jump-to-%s" sym)))
         (doc (format "Jump to section `%s'." title)))
     `(progn
        (defun ,fun ()
          ,doc
          (interactive)
-         (habitrpg-goto-section-at-path '(,sym)))
+         (habitica-goto-section-at-path '(,sym)))
        (put ',fun 'definition-name ',sym))))
 
-(defmacro habitrpg-define-inserter (sym arglist &rest body)
+(defmacro habitica-define-inserter (sym arglist &rest body)
   (declare (indent defun))
-  (let ((fun (intern (format "habitrpg-insert-%s" sym)))
-        (before (intern (format "habitrpg-before-insert-%s-hook" sym)))
-        (after (intern (format "habitrpg-after-insert-%s-hook" sym)))
+  (let ((fun (intern (format "habitica-insert-%s" sym)))
+        (before (intern (format "habitica-before-insert-%s-hook" sym)))
+        (after (intern (format "habitica-after-insert-%s-hook" sym)))
         (doc (format "Insert items for `%s'." sym)))
     `(progn
        (defvar ,before nil)
@@ -1102,15 +1102,15 @@ TITLE is the displayed title of the section."
        (put ',after 'definition-name ',sym)
        (put ',fun 'definition-name ',sym))))
 
-(habitrpg-define-inserter tasks ()
-  (habitrpg-section 'todo
- 		    "Todos:" 'habitrpg-wash-tasks nil
-		    (concat habitrpg-api-url "/user")
+(habitica-define-inserter tasks ()
+  (habitica-section 'todo
+ 		    "Todos:" 'habitica-wash-tasks nil
+		    (concat habitica-api-url "/user")
 		    :type "GET"
 		    :parser 'json-read
 		    :headers `(("Accept" . "application/json")
-			       ("X-API-User" . ,habitrpg-api-user)
-			       ("X-API-Key" . ,habitrpg-api-token))
+			       ("X-API-User" . ,habitica-api-user)
+			       ("X-API-Key" . ,habitica-api-token))
 		    :sync t
 		    :success (function*
 			      (lambda (&key data &allow-other-keys)
@@ -1178,15 +1178,15 @@ TITLE is the displayed title of the section."
 						       (insert (concat "type: pet " (symbol-name (car pet))
 								       " id: 0" " notes: 0" " value: 0" "\n"))))))))))))
 
-(habitrpg-define-inserter store (new-request-p)
-  (habitrpg-section 'store
-  		    "Store:" 'habitrpg-wash-tasks new-request-p
-  		    (concat habitrpg-api-url "/user/inventory/buy")
+(habitica-define-inserter store (new-request-p)
+  (habitica-section 'store
+  		    "Store:" 'habitica-wash-tasks new-request-p
+  		    (concat habitica-api-url "/user/inventory/buy")
   		    :type "GET"
   		    :parser 'json-read
   		    :headers `(("Accept" . "application/json")
-  			       ("X-API-User" . ,habitrpg-api-user)
-  			       ("X-API-Key" . ,habitrpg-api-token))
+  			       ("X-API-User" . ,habitica-api-user)
+  			       ("X-API-Key" . ,habitica-api-token))
   		    :sync t
   		    :success (function*
   			      (lambda (&key data &allow-other-keys)
@@ -1201,31 +1201,31 @@ TITLE is the displayed title of the section."
 
 
 
-(habitrpg-define-inserter habits ()
-  (habitrpg-section 'habit
- 		    "Habits:" 'habitrpg-wash-tasks nil))
-(habitrpg-define-inserter dailys ()
-  (habitrpg-section 'daily
- 		    "Dailys:" 'habitrpg-wash-tasks nil))
-(habitrpg-define-inserter rewards ()
-  (habitrpg-section 'reward
- 		    "Rewards:" 'habitrpg-wash-tasks nil))
-(habitrpg-define-inserter eggs ()
-  (habitrpg-section 'egg
- 		    "Eggs:" 'habitrpg-wash-tasks nil))
-(habitrpg-define-inserter potions ()
-  (habitrpg-section 'potion
- 		    "Potions:" 'habitrpg-wash-tasks nil))
-(habitrpg-define-inserter pets ()
-  (habitrpg-section 'pet
- 		    "Stable:" 'habitrpg-wash-tasks nil))
+(habitica-define-inserter habits ()
+  (habitica-section 'habit
+ 		    "Habits:" 'habitica-wash-tasks nil))
+(habitica-define-inserter dailys ()
+  (habitica-section 'daily
+ 		    "Dailys:" 'habitica-wash-tasks nil))
+(habitica-define-inserter rewards ()
+  (habitica-section 'reward
+ 		    "Rewards:" 'habitica-wash-tasks nil))
+(habitica-define-inserter eggs ()
+  (habitica-section 'egg
+ 		    "Eggs:" 'habitica-wash-tasks nil))
+(habitica-define-inserter potions ()
+  (habitica-section 'potion
+ 		    "Potions:" 'habitica-wash-tasks nil))
+(habitica-define-inserter pets ()
+  (habitica-section 'pet
+ 		    "Stable:" 'habitica-wash-tasks nil))
 
-(defvar habitrpg-indentation-level 1)
+(defvar habitica-indentation-level 1)
 
-(defun habitrpg-wash-tasks ()
-  (habitrpg-wash-sequence #'habitrpg-wash-task))
+(defun habitica-wash-tasks ()
+  (habitica-wash-sequence #'habitica-wash-task))
 
-(defun habitrpg-wash-task ()
+(defun habitica-wash-task ()
   (delete-blank-lines)
   (if (looking-at "type: \\([a-z]*\\) \\(.*\\) id: \\(.*\\) notes: \\([[:ascii:][:nonascii:]]+?\\) value: \\(.*\\)")
       (let* ((type (match-string-no-properties 1))
@@ -1235,11 +1235,11 @@ TITLE is the displayed title of the section."
 	     (value (match-string-no-properties 5))
 	     (parent section-title))
 	(if (string= type parent)
-	    (let ((habitrpg-section-hidden-default t))
-	      (habitrpg-with-section task-name 'tasks
+	    (let ((habitica-section-hidden-default t))
+	      (habitica-with-section task-name 'tasks
 		(delete-region (point) (match-end 0))
 		(let ((p (point))	;task info
-		      (color (habitrpg-task-color value))
+		      (color (habitica-task-color value))
 		      (done nil))
 		  (save-restriction
 		    (narrow-to-region p (point))
@@ -1250,64 +1250,64 @@ TITLE is the displayed title of the section."
 			   (setq task-name (match-string 1 task-name))
 			   (setq done t) "")
 		       (setq done nil) "")
-		     (make-string habitrpg-indentation-level ?\t)
+		     (make-string habitica-indentation-level ?\t)
 		     (propertize
 		      task-name
 		      'face `((:box t)
-			      (:foreground ,(if (> 0.5 (habitrpg-x-color-luminance color))
+			      (:foreground ,(if (> 0.5 (habitica-x-color-luminance color))
 						"white" "black"))
 			      (:background ,color)
 			      ,(if done
 				   '(:strike-through t)
 				 '(:strike-through nil)))) " "
 				 (if (or (string= section-title 'reward) (string= section-title 'store))
-				     (propertize value 'face 'habitrpg-gold)
+				     (propertize value 'face 'habitica-gold)
 				   "") "\n")
 		    (unless (string= task-id "0")
-		      (habitrpg-insert-info task-id notes))
+		      (habitica-insert-info task-id notes))
 		    (goto-char (point-max))))
-		(habitrpg-set-section-info `((,task-name . ,task-id) ("value" . ,value)))))
+		(habitica-set-section-info `((,task-name . ,task-id) ("value" . ,value)))))
 	  (delete-region (point) (match-end 0)))
 	t)
     (forward-line)))
 
 
 
-(defun habitrpg-insert-info (task-id notes)
-  (habitrpg-with-section nil 'notes
+(defun habitica-insert-info (task-id notes)
+  (habitica-with-section nil 'notes
     (insert (propertize "[Notes]\n" 'face 'font-lock-comment-face))
     (insert (propertize (concat notes "\n") 'face 'font-lock-keyword-face))
     (goto-char (point-max)))
-  (habitrpg-with-section nil 'id
+  (habitica-with-section nil 'id
     (insert (propertize "[ID]\n" 'face 'font-lock-comment-face))
     (insert (propertize (concat task-id "\n") 'face 'font-lock-keyword-face))
     (goto-char (point-max))))
 
 
-(defun habitrpg-wash-sequence (func)
+(defun habitica-wash-sequence (func)
   "Run FUNC until end of buffer is reached.
 FUNC should leave point at the end of the modified region"
   (while (and (not (eobp))
               (funcall func))))
 
 ;;
-;; Colors determined by `value' defined by habitrpg.com
+;; Colors determined by `value' defined by habitica.com
 ;;
-(defun habitrpg-x-color-luminance (color)
+(defun habitica-x-color-luminance (color)
   "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\"). Taken from `rainbow'.
 Return a value between 0 and 1."
   (let* ((values (x-color-values color))
 	 (r (/ (car values) 256.0))
          (g (/ (cadr values) 256.0))
 	 (b (/ (caddr values) 256.0)))
-    (habitrpg-color-luminance r g b)))
+    (habitica-color-luminance r g b)))
 
-(defun habitrpg-color-luminance (red green blue)
+(defun habitica-color-luminance (red green blue)
   "Calculate the luminance of color composed of RED, BLUE and GREEN. Taken from `rainbow'.
 Return a value between 0 and 1."
   (/ (+ (* .2126 red) (* .7152 green) (* .0722 blue)) 256))
 
-(defun habitrpg-task-color (value)
+(defun habitica-task-color (value)
   (let* ((value (string-to-number value))
 	 (worst "rgb(230, 184, 175)")
 	 (worse "rgb(244, 204, 204)")
@@ -1340,14 +1340,14 @@ Return a value between 0 and 1."
         (b (* (string-to-number (match-string-no-properties 3 color)) 255.0)))
     (format "#%02X%02X%02X" r g b)))
 
-(defun habitrpg-goto-line (line)
+(defun habitica-goto-line (line)
   "Like `goto-line' but doesn't set the mark."
   (save-restriction
     (widen)
     (goto-char 1)
     (forward-line (1- line))))
 
-(defun habitrpg-quit-window (&optional kill-buffer)
+(defun habitica-quit-window (&optional kill-buffer)
   "Bury the buffer and delete its window.
 With a prefix argument, kill the buffer instead."
   (interactive "P")
@@ -1363,55 +1363,55 @@ With a prefix argument, kill the buffer instead."
 (defadvice org-store-log-note (after delay-log)
   (ad-deactivate 'org-store-log-note)
   (save-excursion
-    (habitrpg-add)))
-(defun habitrpg-setup ()
+    (habitica-add)))
+(defun habitica-setup ()
   (save-excursion (save-window-excursion
 		    (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
-		    (lexical-let* ((in-habit (org-entry-get-with-inheritance "IN_HABITRPG")))
+		    (lexical-let* ((in-habit (org-entry-get-with-inheritance "IN_HABITICA")))
 		      (cond
 		       ((string= in-habit "unknown")
-			(habitrpg-add))
+			(habitica-add))
 		       ((string= in-habit "yes")
-			(habitrpg-add))
+			(habitica-add))
 		       ((string= in-habit "no")
 			t)
 		       ((not in-habit)
-			(habitrpg-add))))))
+			(habitica-add))))))
   (ad-activate 'org-store-log-note))
 
-(defun habitrpg-do-backlog ()
+(defun habitica-do-backlog ()
   (interactive)
   (when hrpg-to-add
-    (message "HabitRPG: Getting task backlog.")
+    (message "Habitica: Getting task backlog.")
     (dolist (queued-task hrpg-to-add)
       (setq hrpg-to-add (cl-delete queued-task hrpg-to-add))
-      (habitrpg-get-id queued-task
+      (habitica-get-id queued-task
 		       (lambda (id)
 			 (when (string= id "nil")
-			   (habitrpg-create "todo" queued-task ""))))))
+			   (habitica-create "todo" queued-task ""))))))
   (when hrpg-to-upvote-ids
-    (message "HabitRPG: Completing task backlog.")
+    (message "Habitica: Completing task backlog.")
     (dolist (task-id hrpg-to-upvote-ids)
       (setq hrpg-to-upvote-ids (cl-delete task-id hrpg-to-upvote-ids))
-      (habitrpg-upvote task-id))))
+      (habitica-upvote task-id))))
 
-(defun habitrpg-add ()
-  "Add to habitrpg.
+(defun habitica-add ()
+  "Add to habitica.
 With point on an `org-mode' headline add TASK if it isn't already
 there.  If its state is DONE, update."
   (interactive)
-  (habitrpg-do-backlog)
+  (habitica-do-backlog)
   (save-excursion (save-window-excursion
 		    (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
 		    (lexical-let* ((task (nth 4 (org-heading-components)))
 				   (state (nth 2 (org-heading-components)))
-				   (in-habit (org-entry-get-with-inheritance "IN_HABITRPG"))
+				   (in-habit (org-entry-get-with-inheritance "IN_HABITICA"))
 				   (last-done-string (if (org-is-habit-p (point))
 							 (car (sort 
 							       (org-habit-done-dates
 								(org-habit-parse-todo))
-							       '>)))
-						     nil)
+							       '>))
+						     nil))
 				   (last-done-day 
 				    (if (and (member "hrpgdaily" (org-get-tags-at))
 					     last-done-string)
@@ -1423,7 +1423,7 @@ there.  If its state is DONE, update."
 				      nil))
 				   type)
 
-		      (habitrpg-get-id task
+		      (habitica-get-id task
 				       (lambda (id)
 					 (save-excursion (save-window-excursion
 							   (if (string= major-mode 'org-agenda-mode) (org-agenda-switch-to))
@@ -1445,28 +1445,28 @@ there.  If its state is DONE, update."
 								 (if (and (string= id "nil") 
 									  (not (string= state "CANCELLED")))
 								     (progn
-								       (habitrpg-create type task text)
+								       (habitica-create type task text)
 								       (if (string= in-habit "unknown")
-									   (org-entry-put (point) "IN_HABITRPG" "yes")))
+									   (org-entry-put (point) "IN_HABITICA" "yes")))
 								   (if (string= in-habit "unknown")
-								       (org-entry-put (point) "IN_HABITRPG" "yes"))))))))
+								       (org-entry-put (point) "IN_HABITICA" "yes"))))))))
 					 (when (and (equal last-done-day 
 							   (reverse (butlast (calendar-current-date))))
 						    (not (string= state "DONE")))
-					   (habitrpg-upvote id)
+					   (habitica-upvote id)
 					   (message "Task \"%s\" completed!" task))
 					 (when (string= state "DONE")
-					   (habitrpg-upvote id)
+					   (habitica-upvote id)
 					   (message "Task \"%s\" completed!" task))))))))
 
-(defun habitrpg-create (type task text &optional value)
+(defun habitica-create (type task text &optional value)
   (setq value (or value ""))
   (request
-   (concat habitrpg-api-url "/user/tasks/")
+   (concat habitica-api-url "/user/tasks/")
    :type "POST"
    :headers `(("Accept" . "application/json")
-	      ("X-API-User" . ,habitrpg-api-user)
-	      ("X-API-Key" . ,habitrpg-api-token))
+	      ("X-API-User" . ,habitica-api-user)
+	      ("X-API-Key" . ,habitica-api-token))
    :data `(("type" . ,type)
 	   ("text" . ,task)
 	   ("notes" . ,text)
@@ -1476,55 +1476,55 @@ there.  If its state is DONE, update."
 	     (lambda (&key data &allow-other-keys)
 	       (message "Task created.")))))
 
-(defun habitrpg-new-task (&optional type)
+(defun habitica-new-task (&optional type)
   (lexical-let* ((type (or type "todo"))
 		 (task (read-from-minibuffer "Task Name: "))
 		 (notes (read-from-minibuffer "Notes: "))
 		 (value (when (string= type "reward") (read-from-minibuffer "Cost: ")))
 		 (p (point)))
     (if (string= type 'reward)
-	(habitrpg-create type task notes value)
-      (habitrpg-create type task notes)
-      (habitrpg-refresh-status)
+	(habitica-create type task notes value)
+      (habitica-create type task notes)
+      (habitica-refresh-status)
       (goto-char p))))
 
-(defvar hrpg-id nil "ID for a habitrpg task.")
-(defvar hrpg-task nil "Habitrpg task.")
+(defvar hrpg-id nil "ID for a habitica task.")
+(defvar hrpg-task nil "Habitica task.")
 
-(defun habitrpg-revive ()
+(defun habitica-revive ()
   (deferred:$
     (request-deferred
-     (concat habitrpg-api-url "/user/revive")
+     (concat habitica-api-url "/user/revive")
      :type "POST"
      :headers `(("Content-Type" . "application/json")
-		("Content-Length" . 0)
-		("X-API-User" . ,habitrpg-api-user)
-		("X-API-Key" . ,habitrpg-api-token))
+
+		("X-API-User" . ,habitica-api-user)
+		("X-API-Key" . ,habitica-api-token))
      :parser 'json-read
-     :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
-			  (message "HabitRPG: Error in getting id for task [%s]" t))))
+     :error  (function* (lambda (&key error-thrown &allow-other-keys)
+			  (message "Habitica: Error in getting id for task [%s]" t))))
     (deferred:nextc it
       (lambda (response)
 	(if (request-response-error-thrown response)
 	    (progn
-	      (message "HabitRPG: Error reviving")))))))
+	      (message "Habitica: Error reviving")))))))
 
-(defun habitrpg-get-id (task func)
+(defun habitica-get-id (task func)
   (lexical-let ((t task) (func func))
     (deferred:$
       (request-deferred
-       (concat habitrpg-api-url "/user")
+       (concat habitica-api-url "/user")
        :headers `(("Accept" . "application/json")
-		  ("X-API-User" . ,habitrpg-api-user)
-		  ("X-API-Key" . ,habitrpg-api-token))
+		  ("X-API-User" . ,habitica-api-user)
+		  ("X-API-Key" . ,habitica-api-token))
        :parser 'json-read
-       :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
-			    (message "HabitRPG: Error in getting id for task [%s]" t))))
+       :error  (function* (lambda (&key error-thrown &allow-other-keys)
+			    (message "Habitica: Error in getting id for task [%s]" t))))
       (deferred:nextc it
 	(lambda (response)
 	  (if (request-response-error-thrown response)
 	      (progn
-		(message "HabitRPG: Error in getting id for task [%s]" t)
+		(message "Habitica: Error in getting id for task [%s]" t)
 		(setq hrpg-to-add (cl-adjoin t hrpg-to-add)))
 	    (let* ((data (request-response-data response))
 		   (tasks (append (assoc-default 'todos data) 
@@ -1565,18 +1565,18 @@ there.  If its state is DONE, update."
 	      (funcall func id))))))))
 
 
-(defun habitrpg-upvote (id &optional task type text direction)
+(defun habitica-upvote (id &optional task type text direction)
   (lexical-let ((direction direction) (task task) (type type))
     (request
      (if (string= type "store")
-	 (concat habitrpg-api-url "/user/inventory/buy/" id "/")
-       (concat habitrpg-api-url "/user/tasks/" id "/"
+	 (concat habitica-api-url "/user/inventory/buy/" id "/")
+       (concat habitica-api-url "/user/tasks/" id "/"
 	       (unless direction "up") direction))
      :type "POST"
      :headers `(("Content-Type" . "application/json")
-		("Content-Length" . 0)
-		("X-API-User" . ,habitrpg-api-user)
-		("X-API-Key" . ,habitrpg-api-token))
+
+		("X-API-User" . ,habitica-api-user)
+		("X-API-Key" . ,habitica-api-token))
      :parser 'json-read
      :success (function* (lambda (&key data &allow-other-keys)
 			   (if hrpg-status-to-file
@@ -1595,25 +1595,25 @@ there.  If its state is DONE, update."
 				  (message "Health lost for habit %s" task))
 				 ((not (string= direction "up"))
 				  (message "Experience gained!")))))
-     :error (function* (lambda (&key error-thrown &allow-other-keys&rest _)
-			 (message "HabitRPG: Error in completing [%s]" id)
+     :error (function* (lambda (&key error-thrown &allow-other-keys)
+			 (message "Habitica: Error in completing [%s]" id)
 			 (setq hrpg-to-upvote-ids (cl-adjoin id hrpg-to-upvote-ids)))))))
 
 
-(defun habitrpg-get-id-at-point ()
-  (let ((id (cdr (car (habitrpg-section-info (habitrpg-current-section))))))
+(defun habitica-get-id-at-point ()
+  (let ((id (cdr (car (habitica-section-info (habitica-current-section))))))
     id))
 
-(defun habitrpg-upvote-at-point ()
+(defun habitica-upvote-at-point ()
   "Upvote a task.  Add task if it doesn't exist."
   (interactive)
 
-  (let* ((id (habitrpg-get-id-at-point))
-	 (section (habitrpg-current-section))
-	 (stats (habitrpg-section-info (habitrpg-find-section '(stats) habitrpg-top-section)))
+  (let* ((id (habitica-get-id-at-point))
+	 (section (habitica-current-section))
+	 (stats (habitica-section-info (habitica-find-section '(stats) habitica-top-section)))
 	 (current-gp  (assoc-default "gp" stats))
-	 (info (habitrpg-section-info section))
-	 (type (habitrpg-section-title (habitrpg-section-parent section)))
+	 (info (habitica-section-info section))
+	 (type (habitica-section-title (habitica-section-parent section)))
 	 (p (point)))
     (save-excursion
       (end-of-visible-line)
@@ -1625,7 +1625,7 @@ there.  If its state is DONE, update."
 			      (if (string= type "store")
 				  id
 				(car (car info))))
-		   (habitrpg-upvote id nil type))))
+		   (habitica-upvote id nil type))))
 	(progn
 	  (goto-char p))
 	(let ((inhibit-read-only t))
@@ -1640,14 +1640,14 @@ there.  If its state is DONE, update."
 		    (put-text-property beg end 'face '(:inverse-video t)))))
       (goto-char p)
       (progn
-	(habitrpg-upvote id)
+	(habitica-upvote id)
 	(message "Task updated: %s"
 		 (car (car info)))
 	
 	(let ((inhibit-read-only t))
 	  (if (or (string= type "habit") (string= type "reward"))
 	      (progn
-		(habitrpg-refresh-status)
+		(habitica-refresh-status)
 		(goto-char p))
 	    (let ((inhibit-read-only t))
 	      (let ((beg (save-excursion
@@ -1664,7 +1664,7 @@ there.  If its state is DONE, update."
 		(string= type "potion") (string= type "egg") (string= type "stable"))
     (save-excursion (save-window-excursion
 		      (forward-char)
-		      (let ((title (habitrpg-section-title (habitrpg-current-section)))
+		      (let ((title (habitica-section-title (habitica-current-section)))
 			    (foundFlag nil))
 			(if (not (org-occur-in-agenda-files title))
 			    (with-current-buffer "*Occur*"
@@ -1679,41 +1679,41 @@ there.  If its state is DONE, update."
 				  (if (and (string= title task) (or (string= state "TODO") (string= state "NEXT")))
 				      (progn
 					(setq foundFlag t)
-					(if (member 'habitrpg-add org-after-todo-state-change-hook)
+					(if (member 'habitica-add org-after-todo-state-change-hook)
 					    (progn
-					      (remove-hook 'org-after-todo-state-change-hook 'habitrpg-add)
+					      (remove-hook 'org-after-todo-state-change-hook 'habitica-add)
 					      (org-todo 'done)
-					      (add-hook 'org-after-todo-state-change-hook 'habitrpg-add))
+					      (add-hook 'org-after-todo-state-change-hook 'habitica-add))
 					  (org-todo 'done)))))
 				(switch-to-buffer "*Occur*")))
 			  (error "No org-mode headline with title \"%s\"" title))))))))
 
 
-(defun habitrpg-downvote-at-point ()
+(defun habitica-downvote-at-point ()
   "Downvote a task.  Add task if it doesn't exist."
   (interactive)
   (end-of-visible-line)
-  (let ((id (habitrpg-get-id-at-point))
+  (let ((id (habitica-get-id-at-point))
 	(p (point)))
-    (habitrpg-upvote id nil nil nil "down")
-    (message "Task downvoted: %s" (car (car (habitrpg-section-info (habitrpg-current-section)))))
-    (habitrpg-refresh-status)
+    (habitica-upvote id nil nil nil "down")
+    (message "Task downvoted: %s" (car (car (habitica-section-info (habitica-current-section)))))
+    (habitica-refresh-status)
     (goto-char p)))
 
-(defun habitrpg-delete-at-point ()
+(defun habitica-delete-at-point ()
   (save-excursion
     (end-of-visible-line)
-    (let* ((id (habitrpg-get-id-at-point))
-	   (section (habitrpg-current-section))
-	   (info (habitrpg-section-info section))
-	   (type (habitrpg-section-title (habitrpg-section-parent section))))
+    (let* ((id (habitica-get-id-at-point))
+	   (section (habitica-current-section))
+	   (info (habitica-section-info section))
+	   (type (habitica-section-title (habitica-section-parent section))))
       (when id
 	(request
-	 (concat habitrpg-api-url "/user/tasks/" id)
+	 (concat habitica-api-url "/user/tasks/" id)
 	 :type "DELETE"
 	 :headers `(("Content-Type" . "application/json")
-		    ("X-API-User" . ,habitrpg-api-user)
-		    ("X-API-Key" . ,habitrpg-api-token))
+		    ("X-API-User" . ,habitica-api-user)
+		    ("X-API-Key" . ,habitica-api-token))
 	 :parser 'json-read
 	 :complete (function*
 		    (lambda (&key data &allow-other-keys)
@@ -1722,20 +1722,20 @@ there.  If its state is DONE, update."
 			(418 . (lambda (&rest _) (message "Got 418."))))))
       (let ((inhibit-read-only t))
 	(let ((beg (save-excursion
-		     (goto-char (habitrpg-section-beginning section))
+		     (goto-char (habitica-section-beginning section))
 		     (point)))
-	      (end (habitrpg-section-end section)))
+	      (end (habitica-section-end section)))
 	  (if (< beg end)
 	      (put-text-property beg end 'invisible t))))
-      (habitrpg-set-section-needs-refresh-on-show t (habitrpg-section-parent section)))))
+      (habitica-set-section-needs-refresh-on-show t (habitica-section-parent section)))))
 
-(defun habitrpg-clock-in ()
+(defun habitica-clock-in ()
   "Upvote a clocking task based on tags.
 Continuously upvote habits associated with the currently clocking task, based on tags specified in `hrpg-tags-list'."
-  (cancel-function-timers 'habitrpg-upvote)
-  (when (get-buffer "*habitrpg:status*")
+  (cancel-function-timers 'habitica-upvote)
+  (when (get-buffer "*habitica:status*")
     (save-excursion (save-window-excursion
-		      (with-current-buffer "*habitrpg:status*"
+		      (with-current-buffer "*habitica:status*"
 			(setq header-line-format nil)))))
   (lexical-let* ((tags (org-get-tags-at))
 		 (habit (car (intersection tags hrpg-tags-list :test 'equal)))
@@ -1747,51 +1747,51 @@ Continuously upvote habits associated with the currently clocking task, based on
 		 (badhabit (car (remove nil bad))))
     (when tags
       (cond (habit
-	     (habitrpg-get-id habit
+	     (habitica-get-id habit
 			      (lambda (id)
 				(setq hrpg-timer (run-at-time nil hrpg-repeat-interval
-							      'habitrpg-upvote id habit "habit" ""))
+							      'habitica-upvote id habit "habit" ""))
 				(message "Clocked into habit \"%s\"" habit))))
 	    (badhabit
-	     (habitrpg-get-id (car badhabit)
+	     (habitica-get-id (car badhabit)
 			      (lambda (id)
 				(when (not (string= id "nil"))
 				  (setq hrpg-timer (run-at-time
 						    (cdr badhabit)
 						    hrpg-repeat-interval
-						    'habitrpg-upvote
+						    'habitica-upvote
 						    id (car badhabit)
 						    "habit" "" "down"))
 				  (message "Warning: Clocked into habit \"%s\""
 					   (car badhabit)))))
-	     (setq habitrpg-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
-	     (when (get-buffer "*habitrpg:status*")
+	     (setq habitica-header-line-string (format "CLOCKED INTO BAD HABIT %s" (car badhabit)))
+	     (when (get-buffer "*habitica:status*")
 	       (save-excursion (save-window-excursion
-				 (with-current-buffer "*habitrpg:status*"
-				   (setq header-line-format habitrpg-header-line-string))))))))))
+				 (with-current-buffer "*habitica:status*"
+				   (setq header-line-format habitica-header-line-string))))))))))
 
 
-(defun habitrpg-clock-out ()
+(defun habitica-clock-out ()
   "Stop upvoting."
-  (cancel-function-timers 'habitrpg-upvote)
-  (setq habitrpg-header-line-string nil)
-  (when (get-buffer "*habitrpg:status*")
+  (cancel-function-timers 'habitica-upvote)
+  (setq habitica-header-line-string nil)
+  (when (get-buffer "*habitica:status*")
     (save-excursion (save-window-excursion
-		      (with-current-buffer "*habitrpg:status*"
+		      (with-current-buffer "*habitica:status*"
 			(setq header-line-format nil))))))
 
 
-(defun habitrpg-search-task-name ()
+(defun habitica-search-task-name ()
   "Try to find task in `org-mode'."
   (interactive)
-  (org-occur-in-agenda-files (habitrpg-section-title (habitrpg-current-section))))
+  (org-occur-in-agenda-files (habitica-section-title (habitica-current-section))))
 
-(defun habitrpg-clock-in-status ()
+(defun habitica-clock-in-status ()
   "Clock in to an `org-mode' task from status buffer."
   (interactive)
   (save-excursion (save-window-excursion
 		    (forward-char)
-		    (let ((title (habitrpg-section-title (habitrpg-current-section))))
+		    (let ((title (habitica-section-title (habitica-current-section))))
 		      (org-occur-in-agenda-files title)
 		      (with-current-buffer "*Occur*"
 			(occur-next)
@@ -1803,19 +1803,19 @@ Continuously upvote habits associated with the currently clocking task, based on
 			      (org-clock-in)
 			    (error "No org-mode headline with title \"%s\"" title))))))))
 
-(defun habitrpg-change-server ()
+(defun habitica-change-server ()
   (interactive)
-  (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
-      (setq habitrpg-api-url "https://www.habitrpg.com/api/v1")
-    (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1"))
-  (message "HabitRPG api URL changed to %s" habitrpg-api-url))
+  (if (string= habitica-api-url "https://beta.habitica.com/api/v1")
+      (setq habitica-api-url "https://www.habitica.com/api/v1")
+    (setq habitica-api-url "https://beta.habitica.com/api/v1"))
+  (message "Habitica api URL changed to %s" habitica-api-url))
 
-(defun habitrpg-change-api-version ()
+(defun habitica-change-api-version ()
   (interactive)
-  (if (string= habitrpg-api-url "https://www.habitrpg.com/api/v1")
-      (setq habitrpg-api-url "https://www.habitrpg.com/api/v2")
-    (setq habitrpg-api-url "https://www.habitrpg.com/api/v1"))
-  (message "HabitRPG api URL changed to %s" habitrpg-api-url))
+  (if (string= habitica-api-url "https://www.habitica.com/api/v1")
+      (setq habitica-api-url "https://www.habitica.com/api/v2")
+    (setq habitica-api-url "https://www.habitica.com/api/v1"))
+  (message "Habitica api URL changed to %s" habitica-api-url))
 
 (provide 'habitrpg)
 (require 'habitrpg-key-mode)
