@@ -1410,8 +1410,8 @@ there.  If its state is DONE, update."
 							 (car (sort 
 							       (org-habit-done-dates
 								(org-habit-parse-todo))
-							       '>)))
-						     nil)
+							       '>))
+						     nil))
 				   (last-done-day 
 				    (if (and (member "hrpgdaily" (org-get-tags-at))
 					     last-done-string)
