@@ -1815,14 +1815,14 @@ Continuously upvote habits associated with the currently clocking task, based on
 (defun habitrpg-change-server ()
   (interactive)
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
-      (setq habitrpg-api-url "https://wwww.habitrpg.com/api/v1")
+      (setq habitrpg-api-url "https://www.habitrpg.com/api/v1")
     (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1"))
   (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
 (defun habitrpg-change-api-version ()
   (interactive)
   (if (string= habitrpg-api-url "https://www.habitrpg.com/api/v1")
-      (setq habitrpg-api-url "https://www.habitrpg.com/api/v3")
+      (setq habitrpg-api-url "https://habitrpg.com/api/v3")
     (setq habitrpg-api-url "https://www.habitrpg.com/api/v1"))
   (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
