@@ -122,7 +122,7 @@
   :prefix "habitrpg-"
   :group 'tools)
 
-(defcustom habitrpg-api-url "https://habitrpg.com/api/v3"
+(defcustom habitrpg-api-url "https://habitica.com/api/v3"
   "API url."
   :group 'habitrpg)
 (defcustom habitrpg-api-user nil
@@ -131,17 +131,15 @@
 (defcustom habitrpg-api-token nil
   "API token."
   :group 'habitrpg)
-(defcustom habitrpg-api-usertask-path "/tasks/user/"
+(defcustom habitrpg-api-usertask-path "/tasks/user"
   "API Tasks Path"
   :group 'habitrpg)
-(defcustom habitrpg-api-user-path "/user/"
-  "API Tasks Path"
+(defcustom habitrpg-api-user-path "/user"
+  "API User Path"
   :group 'habitrpg)
-(defcustom habitrpg-api-inventory-path "/user/inventory/"
-  "API Tasks Path"
+(defcustom habitrpg-api-inventory-path "/user/inventory"
+  "API Inventory Path"
   :group 'habitrpg)
-
-
 
 (cl-eval-when (load eval)
   (defalias 'habitrpg-set-variable-and-refresh 'set-default))
@@ -367,7 +365,7 @@ The function is given one argument, the status buffer."
   (habitrpg-create-buffer-sections
     (habitrpg-with-section 'status nil
       (request
-       (concat habitrpg-api-url "/user")
+       (concat habitrpg-api-url habitrpg-api-user-path)
        :type "GET"
        :parser 'json-read
        :headers `(("Accept" . "application/json")
@@ -1116,7 +1114,7 @@ TITLE is the displayed title of the section."
 (habitrpg-define-inserter tasks ()
   (habitrpg-section 'todo
  		    "Todos:" 'habitrpg-wash-tasks nil
-		    (concat habitrpg-api-url "/user")
+		    (concat habitrpg-api-url habitrpg-api-user-path)
 		    :type "GET"
 		    :parser 'json-read
 		    :headers `(("Accept" . "application/json")
@@ -1192,7 +1190,7 @@ TITLE is the displayed title of the section."
 (habitrpg-define-inserter store (new-request-p)
   (habitrpg-section 'store
   		    "Store:" 'habitrpg-wash-tasks new-request-p
-  		    (concat habitrpg-api-url "/user/inventory/buy")
+  		    (concat habitrpg-api-url habitrpg-api-inventory-path "/buy")
   		    :type "GET"
   		    :parser 'json-read
   		    :headers `(("Accept" . "application/json")
@@ -1473,7 +1471,7 @@ there.  If its state is DONE, update."
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
   (request
-   (concat habitrpg-api-url habitrpg-api-task-path)
+   (concat habitrpg-api-url habitrpg-api-usertask-path)
    :type "POST"
    :headers `(("Accept" . "application/json")
 	      ("X-API-User" . ,habitrpg-api-user)
@@ -1505,7 +1503,7 @@ there.  If its state is DONE, update."
 (defun habitrpg-revive ()
   (deferred:$
     (request-deferred
-     (concat habitrpg-api-url habitrpg-api-user-path "revive")
+     (concat habitrpg-api-url habitrpg-api-user-path "/revive")
      :type "POST"
      :headers `(("Content-Type" . "application/json")
 		("Content-Length" . 0)
@@ -1580,8 +1578,8 @@ there.  If its state is DONE, update."
   (lexical-let ((direction direction) (task task) (type type))
     (request
      (if (string= type "store")
-	 (concat habitrpg-api-url habitrpg-api-inventory-path "buy/" id "/")
-       (concat habitrpg-api-url habitrpg-api-task-path id "/"
+	 (concat habitrpg-api-url habitrpg-api-inventory-path "/buy/" id "/")
+       (concat habitrpg-api-url habitrpg-api-usertask-path "/" id "/"
 	       (unless direction "up") direction))
      :type "POST"
      :headers `(("Content-Type" . "application/json")
@@ -1720,7 +1718,7 @@ there.  If its state is DONE, update."
 	   (type (habitrpg-section-title (habitrpg-section-parent section))))
       (when id
 	(request
-	 (concat habitrpg-api-url habitrpg-api-task-path id)
+	 (concat habitrpg-api-url habitrpg-api-usertask-path "/" id)
 	 :type "DELETE"
 	 :headers `(("Content-Type" . "application/json")
 		    ("X-API-User" . ,habitrpg-api-user)
@@ -1816,16 +1814,16 @@ Continuously upvote habits associated with the currently clocking task, based on
 
 (defun habitrpg-change-server ()
   (interactive)
-  (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v2")
-      (setq habitrpg-api-url "https://www.habitrpg.com/api/v3")
-    (setq habitrpg-api-url "https://beta.habitrpg.com/api/v3"))
+  (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
+      (setq habitrpg-api-url "https://habitica.com/api/v3")
+    (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1"))
   (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
 (defun habitrpg-change-api-version ()
   (interactive)
-  (if (string= habitrpg-api-url "https://www.habitrpg.com/api/v2")
-      (setq habitrpg-api-url "https://www.habitrpg.com/api/v3")
-    (setq habitrpg-api-url "https://www.habitrpg.com/api/v3"))
+  (if (string= habitrpg-api-url "https://www.habitrpg.com/api/v1")
+      (setq habitrpg-api-url "https://habitica.com/api/v3")
+    (setq habitrpg-api-url "https://www.habitrpg.com/api/v1"))
   (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
 (provide 'habitrpg)
