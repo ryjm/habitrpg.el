@@ -1471,7 +1471,7 @@ there.  If its state is DONE, update."
 (defun habitrpg-create (type task text &optional value)
   (setq value (or value ""))
   (request
-   (concat habitrpg-api-url habitrpg-api-usertask-path)
+   (concat habitrpg-api-url habitrpg-api-usertask-path "/")
    :type "POST"
    :headers `(("Accept" . "application/json")
 	      ("X-API-User" . ,habitrpg-api-user)
@@ -1815,14 +1815,14 @@ Continuously upvote habits associated with the currently clocking task, based on
 (defun habitrpg-change-server ()
   (interactive)
   (if (string= habitrpg-api-url "https://beta.habitrpg.com/api/v1")
-      (setq habitrpg-api-url "https://habitica.com/api/v3")
+      (setq habitrpg-api-url "https://wwww.habitrpg.com/api/v1")
     (setq habitrpg-api-url "https://beta.habitrpg.com/api/v1"))
   (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
 (defun habitrpg-change-api-version ()
   (interactive)
   (if (string= habitrpg-api-url "https://www.habitrpg.com/api/v1")
-      (setq habitrpg-api-url "https://habitica.com/api/v3")
+      (setq habitrpg-api-url "https://www.habitrpg.com/api/v3")
     (setq habitrpg-api-url "https://www.habitrpg.com/api/v1"))
   (message "HabitRPG api URL changed to %s" habitrpg-api-url))
 
