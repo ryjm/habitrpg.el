@@ -443,12 +443,12 @@ The function is given one argument, the status buffer."
       (habitrpg-insert-habits)
       (habitrpg-insert-dailys)
       (habitrpg-insert-rewards)
+      (habitrpg-insert-inventory t)
       (habitrpg-insert-eggs)
       (habitrpg-insert-potions)
       (habitrpg-insert-pets)
       (habitrpg-insert-store t)
-      (kill-buffer "*request*")
-      )))
+      (kill-buffer "*request*"))))
 
 (defun habitrpg-mode ()
   "Review the status of your habitrpg characters.
@@ -1171,82 +1171,37 @@ TITLE is the displayed title of the section."
 								    "\n")
 							  (insert "value: 0\n"))))))))))))))
 
-;; (habitrpg-define-inserter tasks ()
-;;   (habitrpg-section 'todo
-;;  		    "Todos:" 'habitrpg-wash-tasks nil
-;; 		    (concat habitrpg-api-url habitrpg-api-user-path)
-;; 		    :type "GET"
-;; 		    :parser 'json-read
-;; 		    :headers `(("Accept" . "application/json")
-;; 			       ("X-API-User" . ,habitrpg-api-user)
-;; 			       ("X-API-Key" . ,habitrpg-api-token))
-;; 		    :sync t
-;; 		    :success (function*
-;; 			      (lambda (&key data &allow-other-keys)
-;; 				(with-current-buffer (get-buffer-create "*request*")
-;; 				  (let* ((data (assoc-default 'data data))
-;; 					 (tasks (append (assoc-default 'todos data) 
-;; 							(assoc-default 'dailys data)
-;; 							(assoc-default 'habits data)
-;; 							(assoc-default 'rewards data)
-;; 							'()))
-;; 					 (items (assoc-default 'items data))
-;; 					 (eggs (assoc-default 'eggs items))
-;; 					 (potions (assoc-default 'hatchingPotions items))
-;; 					 (pets (assoc-default 'pets items))
-;; 					 (names (dolist (task-id tasks)
-;; 						  (let* ((completed (assoc-default 'completed task-id))
-;; 							 (type (assoc-default 'type task-id))
-;; 							 (text (assoc-default 'text task-id))
-;; 							 (id (assoc-default 'id task-id))
-;; 							 (value (assoc-default 'value task-id))
-;; 							 (notes (if (string= "" (assoc-default 'notes task-id))
-;; 								    "0"
-;; 								  (assoc-default 'notes task-id))))
-						
-;; 						    (if (and (string= completed "t")
-;; 							     (not (string= type "todo")))
-;; 							(progn
-;; 							  (insert (concat "type: "
-;; 									  type " " "COMPLETED "
-;; 									  text " "
-;; 									  "id: "
-;; 									  id " "
-;; 									  "notes: " notes " "))
-;; 							  (if value
-;; 							      (insert "value: "
-;; 								      (if (numberp value)
-;; 									  (number-to-string value)
-;; 									value)
-;; 								      "\n")
-;; 							    (insert "value: 0\n")))
-;; 						      (unless (string= completed "t")
-;; 							(insert (concat "type: "
-;; 									type " "
-;; 									text " "
-;; 									"id: "
-;; 									id " "
-;; 									"notes: " notes " "))
-;; 							(if value
-;; 							    (insert "value: "
-;; 								    (if (numberp value)
-;; 									(number-to-string value)
-;; 								      value)
-;; 								    "\n")
-;; 							  (insert "value: 0\n")))))))
-
-;; 					 (eggnames (dotimes (i (length eggs))
-;; 						     (let ((egg (nth i eggs)))
-;; 						       (insert (concat "type: egg " (symbol-name (car egg)) " Egg"
-;; 								       " id: 0" " notes: 0" " value: 0" "\n")))))
-;; 					 (potnames (dotimes (i (length potions))
-;; 						     (let ((pot (nth i potions)))
-;; 						       (insert (concat "type: potion " (symbol-name (car pot))
-;; 								       " id: 0" " notes: 0" " value: 0" "\n")))))
-;; 					 (petnames (dotimes (i (length pets))
-;; 						     (let ((pet (nth i pets)))
-;; 						       (insert (concat "type: pet " (symbol-name (car pet))
-;; 								       " id: 0" " notes: 0" " value: 0" "\n"))))))))))))
+(habitrpg-define-inserter inventory (new-request-p)
+  (habitrpg-section 'inventory
+ 		    "Inventory:" 'habitrpg-wash-tasks new-request-p
+		    (concat habitrpg-api-url habitrpg-api-user-path)
+		    :type "GET"
+		    :parser 'json-read
+		    :headers `(("Accept" . "application/json")
+			       ("X-API-User" . ,habitrpg-api-user)
+			       ("X-API-Key" . ,habitrpg-api-token))
+		    :sync t
+		    :success (function*
+			      (lambda (&key data &allow-other-keys)
+				(with-current-buffer (get-buffer-create "*request*")
+				  (goto-char (point-max))
+				  (let* ((data (assoc-default 'data data))
+					 (items (assoc-default 'items data))
+					 (eggs (assoc-default 'eggs items))
+					 (potions (assoc-default 'hatchingPotions items))
+					 (pets (assoc-default 'pets items))
+					 (eggnames (dotimes (i (length eggs))
+						     (let ((egg (nth i eggs)))
+						       (insert (concat "type: egg " (symbol-name (car egg)) " Egg"
+								       " id: 0" " notes: 0" " value: 0" "\n")))))
+					 (potnames (dotimes (i (length potions))
+						     (let ((pot (nth i potions)))
+						       (insert (concat "type: potion " (symbol-name (car pot))
+								       " id: 0" " notes: 0" " value: 0" "\n")))))
+					 (petnames (dotimes (i (length pets))
+						     (let ((pet (nth i pets)))
+						       (insert (concat "type: pet " (symbol-name (car pet))
+								       " id: 0" " notes: 0" " value: 0" "\n"))))))))))))
 
 (habitrpg-define-inserter store (new-request-p)
   (habitrpg-section 'store
