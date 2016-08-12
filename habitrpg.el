@@ -137,6 +137,9 @@
 (defcustom habitrpg-api-user-path "/user"
   "API User Path"
   :group 'habitrpg)
+(defcustom habitrpg-api-tasks-path "/tasks"
+  "API Task Path"
+  :group 'habitrpg)
 (defcustom habitrpg-api-inventory-path "/user/inventory"
   "API Inventory Path"
   :group 'habitrpg)
@@ -1638,7 +1641,7 @@ there.  If its state is DONE, update."
     (request
      (if (string= type "store")
 	 (concat habitrpg-api-url habitrpg-api-inventory-path "/buy/" id "/")
-       (concat habitrpg-api-url habitrpg-api-usertask-path "/" id "/"
+       (concat habitrpg-api-url habitrpg-api-tasks-path "/" id "/"
 	       (unless direction "up") direction))
      :type "POST"
      :headers `(("Content-Type" . "application/json")
@@ -1778,7 +1781,7 @@ there.  If its state is DONE, update."
 	   (type (habitrpg-section-title (habitrpg-section-parent section))))
       (when id
 	(request
-	 (concat habitrpg-api-url habitrpg-api-usertask-path "/" id)
+	 (concat habitrpg-api-url habitrpg-api-tasks-path "/" id)
 	 :type "DELETE"
 	 :headers `(("Content-Type" . "application/json")
 		    ("X-API-User" . ,habitrpg-api-user)
