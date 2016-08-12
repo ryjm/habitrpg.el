@@ -1539,7 +1539,7 @@ there.  If its state is DONE, update."
   (lexical-let ((t task) (func func))
     (deferred:$
       (request-deferred
-       (concat habitrpg-api-url habitrpg-api-user-path)
+       (concat habitrpg-api-url habitrpg-api-usertask-path)
        :headers `(("Accept" . "application/json")
 		  ("X-API-User" . ,habitrpg-api-user)
 		  ("X-API-Key" . ,habitrpg-api-token))
@@ -1553,10 +1553,7 @@ there.  If its state is DONE, update."
 		(message "HabitRPG: Error in getting id for task [%s]" t)
 		(setq hrpg-to-add (cl-adjoin t hrpg-to-add)))
 	    (let* ((data (assoc-default 'data (request-response-data response)))
-		   (tasks (append (assoc-default 'todos data) 
-				  (assoc-default 'dailys data)
-				  (assoc-default 'habits data)
-				  '()))
+		   (tasks (append data nil))
 		   (names (mapcar
 			   (lambda (task-id)
 			     (let* ((completed (assoc-default 'completed task-id)))
@@ -1596,7 +1593,7 @@ there.  If its state is DONE, update."
     (request
      (if (string= type "store")
 	 (concat habitrpg-api-url habitrpg-api-inventory-path "/buy/" id "/")
-       (concat habitrpg-api-url habitrpg-api-tasks-path "/" id "/"
+       (concat habitrpg-api-url habitrpg-api-tasks-path "/" id "/score/"
 	       (unless direction "up") direction))
      :type "POST"
      :headers `(("Content-Type" . "application/json")
