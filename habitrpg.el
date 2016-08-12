@@ -374,7 +374,8 @@ The function is given one argument, the status buffer."
        :sync t
        :success (function*
 		 (lambda (&key data &allow-other-keys)
-		   (let* ((stats (assoc-default 'stats data))
+		   (let* ((data (assoc-default 'data data))
+			  (stats (assoc-default 'stats data))
 			  ;; stats
 			  (exp (assoc-default 'exp stats))
 			  (gp (assoc-default 'gp stats))
@@ -1114,7 +1115,7 @@ TITLE is the displayed title of the section."
 (habitrpg-define-inserter tasks ()
   (habitrpg-section 'todo
  		    "Todos:" 'habitrpg-wash-tasks nil
-		    (concat habitrpg-api-url habitrpg-api-user-path)
+		    (concat habitrpg-api-url habitrpg-api-usertask-path)
 		    :type "GET"
 		    :parser 'json-read
 		    :headers `(("Accept" . "application/json")
@@ -1124,15 +1125,8 @@ TITLE is the displayed title of the section."
 		    :success (function*
 			      (lambda (&key data &allow-other-keys)
 				(with-current-buffer (get-buffer-create "*request*")
-				  (let* ((tasks (append (assoc-default 'todos data) 
-							(assoc-default 'dailys data)
-							(assoc-default 'habits data)
-							(assoc-default 'rewards data)
-							'()))
-					 (items (assoc-default 'items data))
-					 (eggs (assoc-default 'eggs items))
-					 (potions (assoc-default 'hatchingPotions items))
-					 (pets (assoc-default 'pets items))
+				  (let* ((data (assoc-default 'data data))
+					 (tasks (append data nil))
 					 (names (dolist (task-id tasks)
 						  (let* ((completed (assoc-default 'completed task-id))
 							 (type (assoc-default 'type task-id))
@@ -1147,11 +1141,11 @@ TITLE is the displayed title of the section."
 							     (not (string= type "todo")))
 							(progn
 							  (insert (concat "type: "
-									type " " "COMPLETED "
-									text " "
-									"id: "
-									id " "
-									"notes: " notes " "))
+									  type " " "COMPLETED "
+									  text " "
+									  "id: "
+									  id " "
+									  "notes: " notes " "))
 							  (if value
 							      (insert "value: "
 								      (if (numberp value)
@@ -1172,20 +1166,84 @@ TITLE is the displayed title of the section."
 									(number-to-string value)
 								      value)
 								    "\n")
-							  (insert "value: 0\n")))))))
+							  (insert "value: 0\n"))))))))))))))
 
-					 (eggnames (dotimes (i (length eggs))
-						     (let ((egg (nth i eggs)))
-						       (insert (concat "type: egg " (symbol-name (car egg)) " Egg"
-								       " id: 0" " notes: 0" " value: 0" "\n")))))
-					 (potnames (dotimes (i (length potions))
-						     (let ((pot (nth i potions)))
-						       (insert (concat "type: potion " (symbol-name (car pot))
-								       " id: 0" " notes: 0" " value: 0" "\n")))))
-					 (petnames (dotimes (i (length pets))
-						     (let ((pet (nth i pets)))
-						       (insert (concat "type: pet " (symbol-name (car pet))
-								       " id: 0" " notes: 0" " value: 0" "\n"))))))))))))
+;; (habitrpg-define-inserter tasks ()
+;;   (habitrpg-section 'todo
+;;  		    "Todos:" 'habitrpg-wash-tasks nil
+;; 		    (concat habitrpg-api-url habitrpg-api-user-path)
+;; 		    :type "GET"
+;; 		    :parser 'json-read
+;; 		    :headers `(("Accept" . "application/json")
+;; 			       ("X-API-User" . ,habitrpg-api-user)
+;; 			       ("X-API-Key" . ,habitrpg-api-token))
+;; 		    :sync t
+;; 		    :success (function*
+;; 			      (lambda (&key data &allow-other-keys)
+;; 				(with-current-buffer (get-buffer-create "*request*")
+;; 				  (let* ((data (assoc-default 'data data))
+;; 					 (tasks (append (assoc-default 'todos data) 
+;; 							(assoc-default 'dailys data)
+;; 							(assoc-default 'habits data)
+;; 							(assoc-default 'rewards data)
+;; 							'()))
+;; 					 (items (assoc-default 'items data))
+;; 					 (eggs (assoc-default 'eggs items))
+;; 					 (potions (assoc-default 'hatchingPotions items))
+;; 					 (pets (assoc-default 'pets items))
+;; 					 (names (dolist (task-id tasks)
+;; 						  (let* ((completed (assoc-default 'completed task-id))
+;; 							 (type (assoc-default 'type task-id))
+;; 							 (text (assoc-default 'text task-id))
+;; 							 (id (assoc-default 'id task-id))
+;; 							 (value (assoc-default 'value task-id))
+;; 							 (notes (if (string= "" (assoc-default 'notes task-id))
+;; 								    "0"
+;; 								  (assoc-default 'notes task-id))))
+						
+;; 						    (if (and (string= completed "t")
+;; 							     (not (string= type "todo")))
+;; 							(progn
+;; 							  (insert (concat "type: "
+;; 									  type " " "COMPLETED "
+;; 									  text " "
+;; 									  "id: "
+;; 									  id " "
+;; 									  "notes: " notes " "))
+;; 							  (if value
+;; 							      (insert "value: "
+;; 								      (if (numberp value)
+;; 									  (number-to-string value)
+;; 									value)
+;; 								      "\n")
+;; 							    (insert "value: 0\n")))
+;; 						      (unless (string= completed "t")
+;; 							(insert (concat "type: "
+;; 									type " "
+;; 									text " "
+;; 									"id: "
+;; 									id " "
+;; 									"notes: " notes " "))
+;; 							(if value
+;; 							    (insert "value: "
+;; 								    (if (numberp value)
+;; 									(number-to-string value)
+;; 								      value)
+;; 								    "\n")
+;; 							  (insert "value: 0\n")))))))
+
+;; 					 (eggnames (dotimes (i (length eggs))
+;; 						     (let ((egg (nth i eggs)))
+;; 						       (insert (concat "type: egg " (symbol-name (car egg)) " Egg"
+;; 								       " id: 0" " notes: 0" " value: 0" "\n")))))
+;; 					 (potnames (dotimes (i (length potions))
+;; 						     (let ((pot (nth i potions)))
+;; 						       (insert (concat "type: potion " (symbol-name (car pot))
+;; 								       " id: 0" " notes: 0" " value: 0" "\n")))))
+;; 					 (petnames (dotimes (i (length pets))
+;; 						     (let ((pet (nth i pets)))
+;; 						       (insert (concat "type: pet " (symbol-name (car pet))
+;; 								       " id: 0" " notes: 0" " value: 0" "\n"))))))))))))
 
 (habitrpg-define-inserter store (new-request-p)
   (habitrpg-section 'store
@@ -1201,10 +1259,11 @@ TITLE is the displayed title of the section."
   			      (lambda (&key data &allow-other-keys)
   				(with-current-buffer (get-buffer-create "*request*")
 				  (goto-char (point-max))
-  				  (let* ( (names (seq-doseq (item data)
-						   (let* ((name (assoc-default 'key item))
-							  (value (number-to-string (assoc-default 'value item))))
-						     (insert (concat "type: store "  name " id: " name " notes: 0" " value: " value "\n")))))))))))) 
+  				  (let* ((data (assoc-default 'data data))
+					 (names (seq-doseq (item data)
+						  (let* ((name (assoc-default 'key item))
+							 (value (number-to-string (assoc-default 'value item))))
+						    (insert (concat "type: store "  name " id: " name " notes: 0" " value: " value "\n")))))))))))) 
 
 
 
@@ -1535,7 +1594,7 @@ there.  If its state is DONE, update."
 	      (progn
 		(message "HabitRPG: Error in getting id for task [%s]" t)
 		(setq hrpg-to-add (cl-adjoin t hrpg-to-add)))
-	    (let* ((data (request-response-data response))
+	    (let* ((data (assoc-default 'data (request-response-data response)))
 		   (tasks (append (assoc-default 'todos data) 
 				  (assoc-default 'dailys data)
 				  (assoc-default 'habits data)
@@ -1590,7 +1649,8 @@ there.  If its state is DONE, update."
      :success (function* (lambda (&key data &allow-other-keys)
 			   (if hrpg-status-to-file
 			       (with-temp-file "~/tmp/hrpg-status"
-				 (let* ((exp (assoc-default 'exp data))
+				 (let* ((data (assoc-default 'data data))
+					(exp (assoc-default 'exp data))
 					(gp (assoc-default 'gp data))
 					(hp (assoc-default 'hp data))
 					(lvl (assoc-default 'lvl data)))
