@@ -1607,8 +1607,7 @@ there.  If its state is DONE, update."
      :success (function* (lambda (&key data &allow-other-keys)
 			   (if hrpg-status-to-file
 			       (with-temp-file "~/tmp/hrpg-status"
-				 (let* ((data (assoc-default 'data data))
-					(exp (assoc-default 'exp data))
+				 (let* ((exp (assoc-default 'exp data))
 					(gp (assoc-default 'gp data))
 					(hp (assoc-default 'hp data))
 					(lvl (assoc-default 'lvl data)))
