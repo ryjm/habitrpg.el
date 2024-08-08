@@ -1530,13 +1530,13 @@ there.  If its state is DONE, update."
      :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
 			  (message "HabitRPG: Error in getting id for task [%s]" t))))
     (deferred:nextc it
-      (lambda (response)
+      `(lambda (response)
 	(if (request-response-error-thrown response)
 	    (progn
 	      (message "HabitRPG: Error reviving")))))))
 
 (defun habitrpg-get-id (task func)
-  (lexical-let ((t task) (func func))
+  (lexical-let ((ts task) (func func))
     (deferred:$
       (request-deferred
        (concat habitrpg-api-url habitrpg-api-usertask-path)
@@ -1545,13 +1545,13 @@ there.  If its state is DONE, update."
 		  ("X-API-Key" . ,habitrpg-api-token))
        :parser 'json-read
        :error  (function* (lambda (&key error-thrown &allow-other-keys&rest _)
-			    (message "HabitRPG: Error in getting id for task [%s]" t))))
+			    (message "HabitRPG: Error in getting id for task [%s]" ts))))
       (deferred:nextc it
-	(lambda (response)
+	`(lambda (response)
 	  (if (request-response-error-thrown response)
 	      (progn
-		(message "HabitRPG: Error in getting id for task [%s]" t)
-		(setq hrpg-to-add (cl-adjoin t hrpg-to-add)))
+		(message "HabitRPG: Error in getting id for task [%s]" ,ts)
+		(setq hrpg-to-add (cl-adjoin ,ts hrpg-to-add)))
 	    (let* ((data (assoc-default 'data (request-response-data response)))
 		   (tasks (append data nil))
 		   (names (mapcar
@@ -1567,7 +1567,7 @@ there.  If its state is DONE, update."
 					(assoc-default 'type task-id) "habit"))
 				      (string= (assoc-default
 						'text task-id)
-					       t))
+					       ,ts))
 				 (list (assoc-default 'text task-id) (assoc-default 'id task-id))))) tasks))
 		   ;; Completed tasks should not be upvoted, so
 		   ;; we should gather a list of those tasks and
@@ -1579,13 +1579,13 @@ there.  If its state is DONE, update."
 			      (let* ((name (assoc-default 'text task-id)))
 				(when (not (assoc-default name names))
 				  (list name (car task-id))))) tasks)))
-	      (if (assoc-default t cnames)
+	      (if (assoc-default ,ts cnames)
 		  (progn
 		    (setq id "completed")
-		    (message "Task %S has already been done!" t))
-		(setq id (car (assoc-default t names)))
-		(message "Got id %S for task %S" id t))
-	      (funcall func id))))))))
+		    (message "Task %S has already been done!" ,ts))
+		(setq id (car (assoc-default ,ts names)))
+		(message "Got id %S for task %S" id ,ts))
+	      (funcall ,func id))))))))
 
 
 (defun habitrpg-upvote (id &optional task type text direction)
