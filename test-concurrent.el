@@ -1,4 +1,4 @@
-;;; test code for concurrent.el
+;;; test-concurrent.el --- test code for concurrent.el  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2010  SAKURAI Masashi
 ;; Author: SAKURAI Masashi <m.sakurai at kiwanami.net>

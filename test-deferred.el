@@ -1,4 +1,4 @@
-;;; test code for deferred.el
+;;; test-deferred.el --- test code for deferred.el  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2010, 2011  SAKURAI Masashi
 ;; Author: SAKURAI Masashi <m.sakurai at kiwanami.net>
